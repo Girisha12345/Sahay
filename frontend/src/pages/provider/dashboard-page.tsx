@@ -10,7 +10,7 @@ import { EarningsSummary } from "../../components/provider/EarningsSummary";
 import { RatingsReviews } from "../../components/provider/RatingsReviews";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import type { Booking, ServiceReview } from "../../types";
+import type { ServiceReview } from "../../types";
 import { bookingService } from "../../services/bookingService";
 import { reviewService } from "../../services/reviewService";
 import { Loader, AlertCircle, TrendingUp, Calendar, Award } from "lucide-react";
@@ -20,7 +20,7 @@ type TabType = "overview" | "requests" | "active" | "earnings" | "reviews";
 export function ProviderDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { bookings, fetchProviderBookings, updateBookingStatus } = useBookingStore();
+  const { bookings, fetchProviderBookings } = useBookingStore();
   const { services } = useServiceStore();
   
   const [loading, setLoading] = useState(true);

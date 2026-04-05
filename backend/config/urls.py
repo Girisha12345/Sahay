@@ -1,9 +1,10 @@
 from django.contrib import admin
-from django.urls import include, path
-from django.views.generic import RedirectView
+from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework.permissions import AllowAny
+
+from config.spa import serve_spa
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -16,7 +17,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/api/docs/', permanent=False), name='root-redirect'),
+    path('', serve_spa, name='root-spa'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
     path('api/', include('accounts.provider_urls')),
@@ -30,4 +31,5 @@ urlpatterns = [
     path('api/admin/', include('adminpanel.urls')),
     path('api/support/', include('support.urls')),
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
+    re_path(r'^(?!api/|admin/|static/|media/).*$', serve_spa, name='spa-fallback'),
 ]

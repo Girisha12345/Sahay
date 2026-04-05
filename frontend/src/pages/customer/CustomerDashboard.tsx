@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader, Calendar, Heart, TrendingUp, MapPin, Star, Download, ArrowRight } from "lucide-react";
-import type { Booking, ServiceItem } from "../../types";
+import type { ServiceItem } from "../../types";
 
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -10,8 +10,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useBookingStore } from "../../store/bookingStore";
 import { useServiceStore } from "../../store/serviceStore";
 import { useNotificationStore } from "../../store/notificationStore";
-import { currency } from "../../utils/format";
-import { format, parseISO, formatDistanceToNow } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 export function CustomerDashboard() {
   const navigate = useNavigate();

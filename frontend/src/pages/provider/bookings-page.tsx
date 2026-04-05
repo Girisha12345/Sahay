@@ -10,7 +10,6 @@ import { useBookingStore } from "../../store/bookingStore";
 import { useServiceStore } from "../../store/serviceStore";
 import { bookingService } from "../../services/bookingService";
 import { Loader, Search } from "lucide-react";
-import type { Booking } from "../../types";
 
 type BookingStatus = "PENDING" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ALL";
 

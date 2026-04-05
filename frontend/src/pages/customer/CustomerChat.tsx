@@ -1,0 +1,1 @@
+export { ChatPage as CustomerChat } from "./ChatPage";

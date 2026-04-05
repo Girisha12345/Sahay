@@ -8,7 +8,8 @@ from bookings.models import Booking
 CONTACT_SHARE_PATTERNS = [
 	re.compile(r"\b\d{10}\b"),
 	re.compile(r"\b[\w\.-]+@[\w\.-]+\.\w+\b"),
-	re.compile(r"\b(instagram|insta|ig|whatsapp|wa)\b", re.IGNORECASE),
+	re.compile(r"\b(instagram|insta|ig|facebook|telegram|whatsapp|wa|wa\.me|t\.me)\b", re.IGNORECASE),
+	re.compile(r"https?://|www\.", re.IGNORECASE),
 ]
 
 

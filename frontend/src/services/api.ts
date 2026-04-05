@@ -6,9 +6,36 @@ const emitApiError = (message: string) => {
   window.dispatchEvent(new CustomEvent("api:error", { detail: { message } }));
 };
 
+const extractApiErrorMessage = (data: unknown): string | null => {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const payload = data as Record<string, unknown>;
+
+  if (typeof payload.detail === "string") {
+    return payload.detail;
+  }
+
+  if (Array.isArray(payload.non_field_errors) && typeof payload.non_field_errors[0] === "string") {
+    return payload.non_field_errors[0];
+  }
+
+  for (const value of Object.values(payload)) {
+    if (Array.isArray(value) && typeof value[0] === "string") {
+      return value[0];
+    }
+  }
+
+  return null;
+};
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -23,7 +50,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    let message = error?.response?.data?.detail || "Something went wrong. Please try again.";
+    let message = extractApiErrorMessage(error?.response?.data) || "Something went wrong. Please try again.";
 
     if (!error?.response) {
       message = "Network error. Please check your internet connection.";
@@ -39,3 +66,5 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   },
 );
+
+  export default api;

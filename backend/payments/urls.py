@@ -1,9 +1,9 @@
 from django.urls import path
 
-from payments.views import PaymentHistoryView, PaymentIntentCreateView, PaymentWebhookView
+from payments.views import PaymentCreateOrderView, PaymentHistoryView, PaymentVerifyView
 
 urlpatterns = [
-    path("create-intent", PaymentIntentCreateView.as_view(), name="payment-create-intent"),
-    path("webhook", PaymentWebhookView.as_view(), name="payment-webhook"),
-    path("history", PaymentHistoryView.as_view(), name="payment-history"),
+    path("create-order/", PaymentCreateOrderView.as_view(), name="payment-create-order"),
+    path("verify/", PaymentVerifyView.as_view(), name="payment-verify"),
+    path("history/", PaymentHistoryView.as_view(), name="payment-history"),
 ]

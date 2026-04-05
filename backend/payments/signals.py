@@ -3,6 +3,7 @@ from django.dispatch import receiver
 
 from bookings.models import Booking
 from payments.models import Payment
+from payments.utils import release_escrow_to_provider
 
 
 @receiver(post_save, sender=Booking)
@@ -11,5 +12,4 @@ def release_payment_on_completion(sender, instance, **kwargs):
         return
     payment = getattr(instance, "payment", None)
     if payment and payment.payment_status == Payment.PaymentStatus.PAID:
-        payment.payment_status = Payment.PaymentStatus.RELEASED
-        payment.save(update_fields=["payment_status"])
+        release_escrow_to_provider(booking=instance)

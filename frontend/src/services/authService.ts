@@ -20,17 +20,24 @@ const clearTokens = () => {
 };
 
 export const authService = {
-  register: (payload: RegisterPayload) => api.post("auth/register", payload),
+  register: (payload: RegisterPayload) => api.post("auth/register/", payload),
   login: async (payload: { email: string; password: string }) => {
-    const response = await api.post("auth/login", payload);
+    const response = await api.post("auth/login/", payload);
     saveTokens(response.data.access, response.data.refresh);
     return response;
   },
   logout: async (refresh: string) => {
-    const response = await api.post("auth/logout", { refresh });
+    const response = await api.post("auth/logout/", { refresh });
     clearTokens();
     return response;
   },
-  getProfile: () => api.get("auth/profile"),
+  getProfile: () => api.get("auth/profile/"),
+  getProviderDashboard: () => api.get("provider/dashboard"),
+  updateProviderProfile: (payload: {
+    skills?: string[];
+    experience_years?: number;
+    hourly_rate?: number;
+    documents?: string[];
+  }) => api.patch("provider/update-profile", payload),
   clearTokens,
 };

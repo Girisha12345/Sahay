@@ -10,7 +10,12 @@ load_dotenv(BASE_DIR / ".env")
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost"]),
-    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000", "http://127.0.0.1:3000"]),
+    CORS_ALLOWED_ORIGINS=(list, [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]),
 )
 
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -42,13 +47,15 @@ INSTALLED_APPS = [
     'payments',
     'chat',
     'reviews',
+    'notifications.apps.NotificationsConfig',
+    'addresses',
     'adminpanel',
     'support',
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -93,6 +100,9 @@ DATABASES = {
         },
     }
 }
+
+if os.getenv("DATABASE_URL"):
+    DATABASES["default"] = env.db("DATABASE_URL")
 
 
 # Password validation
@@ -140,6 +150,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -202,6 +213,8 @@ CHANNEL_LAYERS = {
 
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
+RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID', default='')
+RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET', default='')
 
 SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,

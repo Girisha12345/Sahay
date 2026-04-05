@@ -1,4 +1,4 @@
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F, DecimalField, ExpressionWrapper
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from accounts.models import ProviderProfile, User
 from accounts.permissions import IsAdminRole
 from accounts.serializers import ProviderProfileSerializer
+from bookings.models import Booking
 from adminpanel.serializers import ApproveProviderSerializer, FlaggedMessageSerializer
 from chat.models import Message
 from payments.models import Payment
@@ -15,12 +16,26 @@ class RevenueAnalyticsView(APIView):
 	permission_classes = [IsAdminRole]
 
 	def get(self, request):
-		totals = Payment.objects.filter(payment_status__in=["PAID", "RELEASED"]).aggregate(
-			revenue=Sum("commission"),
-			gross=Sum("amount"),
+		completed_payments = Payment.objects.filter(payment_status="RELEASED")
+		provider_earnings = completed_payments.aggregate(
+			total=Sum(ExpressionWrapper(F("amount") - F("commission"), output_field=DecimalField(max_digits=12, decimal_places=2)))
+		)["total"] or 0
+		totals = completed_payments.aggregate(
+			revenue=Sum("amount"),
+			commission=Sum("commission"),
+			provider_earnings=provider_earnings,
 		)
+		completed_bookings = Booking.objects.filter(status=Booking.Status.COMPLETED).count()
 		by_status = Payment.objects.values("payment_status").annotate(total=Count("id"))
-		return Response({"totals": totals, "payment_status": by_status})
+		flagged_messages = Message.objects.filter(is_flagged=True).count()
+		return Response(
+			{
+				"totals": totals,
+				"payment_status": by_status,
+				"completed_bookings": completed_bookings,
+				"flagged_messages": flagged_messages,
+			}
+		)
 
 
 class PendingProvidersView(APIView):

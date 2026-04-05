@@ -1,4 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -21,6 +23,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const { register: registerUser, loading, error } = useAuthStore();
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -58,8 +61,21 @@ export function RegisterPage() {
             <Input placeholder="Phone number" {...register("phone_number")} />
             {errors.phone_number && <p className="mt-1 text-xs text-red-600">{errors.phone_number.message}</p>}
           </div>
-          <div>
-            <Input type="password" placeholder="Password" {...register("password")} />
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              className="pr-10"
+              {...register("password")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
             {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
           </div>
           <div className="md:col-span-2">

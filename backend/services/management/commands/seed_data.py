@@ -7,72 +7,49 @@ from faker import Faker
 
 from accounts.models import ProviderProfile, User
 from bookings.models import Booking
+from reviews.models import Review
 from services.models import Category, Service
+from services.service_catalog import CATEGORY_SERVICE_CATALOG
 
 faker = Faker()
 
-SERVICE_NAMES = [
-    "Emergency Plumbing Repair",
-    "Bathroom Pipe Installation",
-    "Kitchen Sink Unclogging",
-    "Home Electrical Wiring",
-    "Ceiling Fan Installation",
-    "Switchboard Repair Service",
-    "Split AC Installation",
-    "AC Deep Cleaning",
-    "Refrigerator Repair",
-    "Washing Machine Repair",
-    "Laptop Hardware Repair",
-    "Desktop Setup & Maintenance",
-    "WiFi Router Configuration",
-    "CCTV Camera Installation",
-    "Home Deep Cleaning",
-    "Sofa Shampoo Cleaning",
-    "Bathroom Sanitization",
-    "Kitchen Chimney Cleaning",
-    "Pest Control Treatment",
-    "Car Interior Detailing",
-    "Car Wash At Home",
-    "Bike Servicing At Doorstep",
-    "Driver On Demand",
-    "Packers and Movers Help",
-    "Local Delivery Partner",
-    "Grocery Pickup Assistance",
-    "Elder Care Companion",
-    "Baby Sitting Service",
-    "Home Nursing Visit",
-    "Physiotherapy At Home",
-    "Personal Fitness Trainer",
-    "Yoga Instructor Session",
-    "Zumba Home Class",
-    "Math Home Tutor",
-    "English Speaking Tutor",
-    "Science Coaching Session",
-    "Music Teacher At Home",
-    "Guitar Beginner Lessons",
-    "Bridal Makeup Service",
-    "Hair Spa At Home",
-    "Men Grooming Service",
-    "Mehendi Artist Booking",
-    "Event Decoration Setup",
-    "Birthday Party Planner",
-    "Photography & Videography",
-    "Pet Grooming At Home",
-    "Pet Walking Service",
-    "Home Chef Meal Service",
-    "Catering For Small Events",
-    "Legal Document Assistance",
-]
+RATING_BASELINE_BY_CATEGORY = {
+    "HOME SERVICES": 4.2,
+    "CLEANING SERVICES": 4.8,
+    "TECHNICAL SERVICES": 4.4,
+    "DELIVERY & ERRANDS": 4.1,
+    "EDUCATION": 4.3,
+    "BEAUTY & SALON": 4.5,
+    "FITNESS": 4.2,
+    "EVENT SERVICES": 4.4,
+    "PERSONAL CARE": 4.3,
+    "PET SERVICES": 4.1,
+    "PROFESSIONAL SERVICES": 4.2,
+    "ODD JOBS": 3.9,
+    "AUTOMOBILE": 4.6,
+    "FOOD SERVICES": 4.4,
+}
+
+
+def build_service_description(category_name: str, title: str) -> str:
+    template = CATEGORY_SERVICE_CATALOG[category_name]["description_template"]
+    return template.format(title=title, title_lower=title.lower())
+
+
+def build_service_price(category_name: str, index: int) -> Decimal:
+    category_data = CATEGORY_SERVICE_CATALOG[category_name]
+    amount = category_data["price_start"] + (category_data["price_step"] * index)
+    return Decimal(str(amount)).quantize(Decimal("0.01"))
 
 
 class Command(BaseCommand):
     help = "Seed sample data for Sahāy platform"
 
     def handle(self, *args, **options):
-        categories = list(Category.objects.all())
-        if not categories:
-            self.stdout.write(self.style.ERROR("No categories found. Run migrations first."))
-            return
+        category_map = {}
+        for category_name in CATEGORY_SERVICE_CATALOG.keys():
+            category, _ = Category.objects.get_or_create(name=category_name, defaults={"is_active": True})
+            category_map[category_name] = category
 
         providers = []
         for idx in range(10):
@@ -114,46 +91,48 @@ class Command(BaseCommand):
             customers.append(customer)
 
         services = []
-        for idx, service_name in enumerate(SERVICE_NAMES):
-            service = Service.objects.filter(title=service_name).first()
-            if not service:
-                legacy_service = Service.objects.filter(title=f"Service {idx + 1}").first()
-                if legacy_service:
-                    legacy_service.title = service_name
-                    legacy_service.category = legacy_service.category or choice(categories)
-                    if not legacy_service.description:
-                        legacy_service.description = faker.sentence(nb_words=12)
-                    if not legacy_service.base_price:
-                        legacy_service.base_price = Decimal(str(round(uniform(300, 2500), 2)))
-                    legacy_service.is_active = True
-                    legacy_service.save()
-                    service = legacy_service
-                else:
-                    service = Service.objects.create(
-                        title=service_name,
-                        category=choice(categories),
-                        description=faker.sentence(nb_words=12),
-                        base_price=Decimal(str(round(uniform(300, 2500), 2))),
-                        is_active=True,
-                    )
-            services.append(service)
+        for category_name, category_data in CATEGORY_SERVICE_CATALOG.items():
+            category = category_map[category_name]
+            for index, service_title in enumerate(category_data["services"]):
+                service, _ = Service.objects.update_or_create(
+                    category=category,
+                    title=service_title,
+                    defaults={
+                        "description": build_service_description(category_name, service_title),
+                        "base_price": build_service_price(category_name, index),
+                        "is_active": True,
+                    },
+                )
+                services.append(service)
 
         for _ in range(30):
             service = choice(services)
             total = Decimal(str(round(uniform(500, 3500), 2)))
             commission = (total * Decimal("0.10")).quantize(Decimal("0.01"))
-            Booking.objects.get_or_create(
+            status = choice([x[0] for x in Booking.Status.choices])
+            booking, _ = Booking.objects.get_or_create(
                 customer=choice(customers),
                 provider=choice(providers),
                 service=service,
                 scheduled_date=date.today() + timedelta(days=randint(1, 10)),
                 scheduled_time=faker.time_object(),
                 defaults={
-                    "status": choice([x[0] for x in Booking.Status.choices]),
+                    "status": status,
                     "total_price": total,
                     "commission_amount": commission,
                     "final_provider_amount": total - commission,
                 },
             )
+
+            if booking.status == Booking.Status.COMPLETED:
+                baseline = RATING_BASELINE_BY_CATEGORY.get(service.category.name, 4.2)
+                generated_rating = int(round(max(1, min(5, uniform(baseline - 0.6, baseline + 0.4)))))
+                Review.objects.get_or_create(
+                    booking=booking,
+                    defaults={
+                        "rating": generated_rating,
+                        "comment": faker.sentence(nb_words=10),
+                    },
+                )
 
         self.stdout.write(self.style.SUCCESS("Seed data created successfully."))

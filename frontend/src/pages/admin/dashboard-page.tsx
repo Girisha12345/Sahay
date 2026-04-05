@@ -58,7 +58,7 @@ export function AdminDashboardPage() {
       </div>
       <Card>
         <h3 className="font-semibold">Moderation</h3>
-        <p className="mt-2 text-sm text-slate-500">Manage categories, approve providers, and monitor flagged chats.</p>
+        <p className="mt-2 text-sm text-slate-500">Manage service categories, approve providers, and monitor flagged chats.</p>
       </Card>
     </div>
   );

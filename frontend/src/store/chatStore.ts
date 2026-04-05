@@ -18,8 +18,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   connect(bookingId) {
     get().disconnect();
     const socket = chatService.connectSocket(bookingId);
-    chatService.receiveMessage(socket, (payload) => {
-      set((state) => ({ messages: [...state.messages, payload as Message] }));
+    chatService.onMessage(socket, null, (payload) => {
+      if (payload.sender_role === "SYSTEM") {
+        return;
+      }
+      const mapped: Message = {
+        id: payload.id,
+        sender: payload.sender_id,
+        content: payload.message_text,
+        created_at: payload.timestamp,
+      };
+      set((state) => ({ messages: [...state.messages, mapped] }));
     });
     set({ socket, messages: [] });
   },

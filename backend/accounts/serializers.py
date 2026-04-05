@@ -64,8 +64,21 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
             "hourly_rate",
             "documents",
             "verification_status",
+            "city",
             "rating",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["verification_status", "rating", "created_at", "updated_at"]
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "phone_number", "email"]
+
+    def validate_phone_number(self, value):
+        phone = (value or "").strip()
+        if len(phone) < 8:
+            raise serializers.ValidationError("Phone number must be at least 8 digits.")
+        return phone

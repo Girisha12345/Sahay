@@ -16,6 +16,8 @@ class ServiceSerializer(serializers.ModelSerializer):
         source="category",
         write_only=True,
     )
+    average_rating = serializers.ReadOnlyField()
+    review_count = serializers.ReadOnlyField()
 
     class Meta:
         model = Service
@@ -26,7 +28,12 @@ class ServiceSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "base_price",
+            "rating",
+            "total_reviews",
+            "average_rating",
+            "review_count",
             "is_active",
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["rating", "total_reviews", "created_at", "updated_at"]

@@ -10,20 +10,30 @@ import { AdminProvidersPage } from "./pages/admin/providers-page";
 import { LoginPage } from "./pages/auth/login-page";
 import { RegisterPage } from "./pages/auth/register-page";
 import { BookingPage } from "./pages/customer/booking-page";
+import { CustomerAddresses } from "./pages/customer/CustomerAddresses";
+import { CustomerSupport } from "./pages/customer/CustomerSupport";
 import { CategoriesPage } from "./pages/customer/categories-page";
 import { CustomerBookingsPage } from "./pages/customer/bookings-page";
 import { CustomerChatPage } from "./pages/customer/chat-page";
+import { ChatLauncherPage } from "./pages/customer/chat-launcher-page";
 import { CustomerDashboardPage } from "./pages/customer/dashboard-page";
 import { HomePage } from "./pages/customer/home-page";
 import { CustomerProfilePage } from "./pages/customer/profile-page";
+import { PaymentPage } from "./pages/customer/PaymentPage";
+import { PaymentSuccessPage } from "./pages/customer/PaymentSuccessPage";
+import { PaymentsPage } from "./pages/Payments";
 import { ServicesPage } from "./pages/customer/services-page";
+import { ServiceDetailPage } from "./pages/customer/ServiceDetail";
 import { NotFoundPage } from "./pages/not-found-page";
+import { NotificationsPage } from "./pages/notifications/NotificationsPage";
+import { SupportDashboardPage } from "./pages/support/SupportDashboardPage.tsx";
 import { ProviderBookingsPage } from "./pages/provider/bookings-page";
 import { ProviderDashboardPage } from "./pages/provider/dashboard-page";
 import { ProviderEarningsPage } from "./pages/provider/earnings-page";
 import { ProviderProfilePage } from "./pages/provider/profile-page";
 import { useAuthStore } from "./store/authStore";
 import { useServiceStore } from "./store/serviceStore";
+import { getDashboardPathForRole } from "./utils/routes";
 
 function App() {
   const { loadProfile } = useAuthStore();
@@ -41,13 +51,46 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <RoleDashboardRedirect />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/services" element={<ServicesPage />} />
+        <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route
+          path="/payments"
+          element={
+            <ProtectedRoute>
+              <PaymentsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/booking/:id"
           element={
-            <ProtectedRoute roles={["CUSTOMER"]}>
+            <ProtectedRoute>
               <BookingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment/:bookingId"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <PaymentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment/success"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <PaymentSuccessPage />
             </ProtectedRoute>
           }
         />
@@ -69,6 +112,30 @@ function App() {
           }
         />
         <Route
+          path="/customer/addresses"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <CustomerAddresses />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/support"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <CustomerSupport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <ChatLauncherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/customer/profile"
           element={
             <ProtectedRoute roles={["CUSTOMER"]}>
@@ -81,6 +148,14 @@ function App() {
           element={
             <ProtectedRoute roles={["CUSTOMER"]}>
               <CustomerChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />
@@ -150,6 +225,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/support/dashboard"
+          element={
+            <ProtectedRoute roles={["SUPPORT_AGENT", "ADMIN"]}>
+              <SupportDashboardPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
@@ -159,3 +242,8 @@ function App() {
 }
 
 export default App;
+
+function RoleDashboardRedirect() {
+  const { user } = useAuthStore();
+  return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+}

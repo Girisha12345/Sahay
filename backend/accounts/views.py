@@ -10,6 +10,7 @@ from accounts.serializers import (
 	LoginSerializer,
 	ProviderProfileSerializer,
 	RegisterSerializer,
+	UserProfileUpdateSerializer,
 	UserSerializer,
 )
 from bookings.models import Booking
@@ -54,6 +55,14 @@ class LogoutView(APIView):
 
 class ProfileView(APIView):
 	def get(self, request):
+		return Response(UserSerializer(request.user).data)
+
+
+class ProfileUpdateView(APIView):
+	def patch(self, request):
+		serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
 		return Response(UserSerializer(request.user).data)
 
 

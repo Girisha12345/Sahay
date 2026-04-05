@@ -22,6 +22,18 @@ class SupportTicketListView(generics.ListAPIView):
 		return SupportTicket.objects.filter(user=self.request.user).order_by("-created_at")
 
 
+class SupportTicketListCreateView(generics.ListCreateAPIView):
+	serializer_class = SupportTicketSerializer
+
+	def get_queryset(self):
+		if self.request.user.role in [User.Role.SUPPORT_AGENT, User.Role.ADMIN]:
+			return SupportTicket.objects.all().order_by("-created_at")
+		return SupportTicket.objects.filter(user=self.request.user).order_by("-created_at")
+
+	def perform_create(self, serializer):
+		serializer.save(user=self.request.user)
+
+
 class SupportTicketUpdateView(generics.UpdateAPIView):
 	queryset = SupportTicket.objects.all()
 	serializer_class = SupportTicketSerializer

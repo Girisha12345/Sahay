@@ -16,17 +16,21 @@ export interface Category {
   id: number;
   name: string;
   is_active: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface ServiceItem {
   id: number;
   title: string;
   description: string;
-  base_price: string;
+  base_price: string | number;
   is_active: boolean;
   category: Category;
-  rating?: number;
+  category_name?: string;
+  provider?: string | number;
+  provider_name?: string;
+  duration_minutes?: number;
+  rating?: number | string;
   total_reviews?: number;
   average_rating?: number;
   review_count?: number;

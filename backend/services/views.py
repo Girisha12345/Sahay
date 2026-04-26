@@ -1,88 +1,101 @@
 from django.db.models import Q
-from rest_framework import generics, permissions
+from rest_framework import filters, generics, permissions, status
+from rest_framework.response import Response
 
+from accounts.permissions import IsAdminRole, IsProviderRole
 from services.models import Category, Service
-from services.permissions import IsAdminOnly
-from services.serializers import CategorySerializer, ServiceSerializer
+from services.serializers import CategorySerializer, ProviderServiceSerializer, PublicServiceSerializer
 
 
-def expand_service_search_terms(query: str) -> list[str]:
-	query = query.lower().strip()
-	terms = {query}
-	for fragment in query.split():
-		terms.add(fragment)
-
-	synonyms = {
-		"plumber": {"plumbing", "plumb", "pipe"},
-		"plumbing": {"plumber", "pipe"},
-		"cleaning": {"clean", "cleaner", "deep clean"},
-		"clean": {"cleaning", "cleaner", "deep clean"},
-		"tutor": {"tuition", "education", "coaching"},
-		"tutoring": {"tutor", "tuition", "education"},
-		"electrician": {"electrical", "electric", "wiring"},
-		"beauty": {"salon", "grooming"},
-	}
-
-	for term in list(terms):
-		terms.update(synonyms.get(term, set()))
-
-	return [term for term in terms if term]
-
-
-def filter_services_queryset(queryset, request):
-	search = request.query_params.get("search", "").strip()
-	category_id = request.query_params.get("category") or request.query_params.get("category__id")
-
-	if category_id:
-		queryset = queryset.filter(category__id=category_id)
-
-	if search:
-		terms = expand_service_search_terms(search)
-		search_query = Q()
-		for term in terms:
-			search_query |= (
-				Q(title__icontains=term)
-				| Q(description__icontains=term)
-				| Q(category__name__icontains=term)
-			)
-		queryset = queryset.filter(search_query).distinct()
-
-	return queryset
-
-
-class CategoryListView(generics.ListAPIView):
-	queryset = Category.objects.filter(is_active=True).order_by("name")
+class PublicCategoryListView(generics.ListAPIView):
 	serializer_class = CategorySerializer
 	permission_classes = [permissions.AllowAny]
+	queryset = Category.objects.filter(is_active=True).order_by("name")
 
 
-class ServiceListView(generics.ListAPIView):
-	queryset = Service.objects.filter(is_active=True).select_related("category")
-	serializer_class = ServiceSerializer
+class PublicServiceListView(generics.ListAPIView):
+	serializer_class = PublicServiceSerializer
 	permission_classes = [permissions.AllowAny]
-	filter_backends = []
+	filter_backends = [filters.SearchFilter]
+	search_fields = ["title", "description"]
 
 	def get_queryset(self):
-		return filter_services_queryset(super().get_queryset(), self.request)
+		qs = Service.objects.filter(
+			is_active=True,
+			provider__is_verified_provider=True,
+		).select_related("category", "provider")
+
+		category = self.request.query_params.get("category")
+		if category:
+			if str(category).isdigit():
+				qs = qs.filter(category_id=category)
+			else:
+				qs = qs.filter(category__name__iexact=category)
+
+		return qs.order_by("-created_at")
 
 
-class ServiceListCreateView(generics.ListCreateAPIView):
-	queryset = Service.objects.filter(is_active=True).select_related("category")
-	serializer_class = ServiceSerializer
-	filter_backends = []
+class PublicServiceDetailView(generics.RetrieveAPIView):
+	serializer_class = PublicServiceSerializer
+	permission_classes = [permissions.AllowAny]
+	queryset = Service.objects.filter(
+		is_active=True,
+		provider__is_verified_provider=True,
+	).select_related("category", "provider")
+
+
+class ProviderMyServiceListCreateView(generics.ListCreateAPIView):
+	serializer_class = ProviderServiceSerializer
+	permission_classes = [permissions.IsAuthenticated, IsProviderRole]
 
 	def get_queryset(self):
-		return filter_services_queryset(super().get_queryset(), self.request)
+		return Service.objects.filter(provider=self.request.user).select_related("category", "provider").order_by("-created_at")
 
-	def get_permissions(self):
-		if self.request.method == "POST":
-			return [IsAdminOnly()]
-		return [permissions.AllowAny()]
+	def perform_create(self, serializer):
+		serializer.save(provider=self.request.user)
 
 
-class ServiceDetailView(generics.RetrieveAPIView):
-	queryset = Service.objects.filter(is_active=True).select_related("category")
-	serializer_class = ServiceSerializer
+class ProviderMyServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
+	serializer_class = ProviderServiceSerializer
+	permission_classes = [permissions.IsAuthenticated, IsProviderRole]
+
+	def get_queryset(self):
+		return Service.objects.filter(provider=self.request.user).select_related("category", "provider")
+
+
+class ProviderMyServiceToggleActiveView(generics.GenericAPIView):
+	serializer_class = ProviderServiceSerializer
+	permission_classes = [permissions.IsAuthenticated, IsProviderRole]
+
+	def post(self, request, pk):
+		service = Service.objects.filter(pk=pk, provider=request.user).first()
+		if not service:
+			return Response({"detail": "Service not found."}, status=status.HTTP_404_NOT_FOUND)
+
+		service.is_active = not service.is_active
+		service.save(update_fields=["is_active", "updated_at"])
+		return Response(ProviderServiceSerializer(service).data, status=status.HTTP_200_OK)
+
+
+class AdminServiceModerationView(generics.RetrieveUpdateAPIView):
+	serializer_class = ProviderServiceSerializer
+	permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+	queryset = Service.objects.all().select_related("category", "provider")
+
+
+class LegacyServiceSearchView(generics.ListAPIView):
+	serializer_class = PublicServiceSerializer
 	permission_classes = [permissions.AllowAny]
+
+	def get_queryset(self):
+		q = self.request.query_params.get("q", "").strip()
+		qs = Service.objects.filter(is_active=True).select_related("category", "provider")
+		if q:
+			qs = qs.filter(
+				Q(title__icontains=q)
+				| Q(description__icontains=q)
+				| Q(category__name__icontains=q)
+			)
+		return qs.order_by("-created_at")
 
 

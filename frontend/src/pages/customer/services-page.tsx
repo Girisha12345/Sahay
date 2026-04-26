@@ -20,17 +20,6 @@ type ServiceFilterValues = {
   availability: string;
 };
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  Electrician: ["electric", "wiring", "switch", "fan", "light"],
-  Plumber: ["plumb", "pipe", "tap", "sink", "bathroom", "water"],
-  Cleaning: ["clean", "sanit", "wash", "hygiene"],
-  Carpenter: ["carpent", "furniture", "wood", "door", "window", "shelf"],
-  "AC Repair": ["ac", "air", "cooling", "conditioner"],
-  Painting: ["paint", "wall", "color"],
-  Salon: ["salon", "beauty", "hair", "facial", "makeup", "groom"],
-  "Appliance Repair": ["appliance", "repair", "refrigerator", "washing", "laptop", "printer", "tv", "mobile"],
-};
-
 const EMPTY_FILTERS: ServiceFilterValues = {
   search: "",
   category: "",
@@ -38,31 +27,12 @@ const EMPTY_FILTERS: ServiceFilterValues = {
   rating: 0,
   location: "",
   availability: "",
-};
-
-function matchesCategoryFilter(service: ServiceItem, selectedCategory: string) {
-  if (!selectedCategory) return true;
-
-  const normalizedSelected = selectedCategory.trim().toLowerCase();
-  const keywords = CATEGORY_KEYWORDS[selectedCategory] || [];
-  const searchable = `${service.title} ${service.description} ${service.category.name}`.toLowerCase();
-
-  // Fallback to direct match to avoid false "no services" when a keyword map entry is missing.
-  if (searchable.includes(normalizedSelected)) {
-    return true;
-  }
-
-  return keywords.length ? keywords.some((keyword) => searchable.includes(keyword)) : true;
 }
 
-function resolveCategoryMatch(service: ServiceItem, categoryParam: string) {
-  if (!categoryParam) return true;
-
-  const normalizedParam = categoryParam.trim().toLowerCase();
-  const serviceCategoryId = String(service.category?.id ?? "").toLowerCase();
-  const serviceCategoryName = String(service.category?.name ?? "").trim().toLowerCase();
-
-  return serviceCategoryId === normalizedParam || serviceCategoryName === normalizedParam;
+function getCategoryName(service: ServiceItem) {
+  if (service.category_name) return service.category_name;
+  if (typeof service.category === "object" && service.category?.name) return service.category.name;
+  return "";
 }
 
 export function ServicesPage() {
@@ -80,15 +50,20 @@ export function ServicesPage() {
     const fetchServices = async () => {
       setPageLoading(true);
       try {
-        const { data } = await serviceService.services();
-        setServices(data);
+        const queryCategory = filters.category || categoryParam || undefined;
+        const querySearch = (filters.search || searchQuery || "").trim() || undefined;
+        const { data } = await serviceService.getPublicServices({
+          category: queryCategory,
+          search: querySearch,
+        });
+        setServices(Array.isArray(data) ? data : []);
       } finally {
         setPageLoading(false);
       }
     };
 
     void fetchServices();
-  }, []);
+  }, [categoryParam, searchQuery, filters.category, filters.search]);
 
   const handleFiltersChange = useCallback((nextFilters: ServiceFilterValues) => {
     setFilters(nextFilters);
@@ -101,16 +76,15 @@ export function ServicesPage() {
         const normalizedLocation = filters.location.trim().toLowerCase();
         const normalizedAvailability = filters.availability.trim().toLowerCase();
 
-        const categoryMatch = resolveCategoryMatch(service, categoryParam);
-        const categoryDropdownMatch = matchesCategoryFilter(service, filters.category);
         const priceMatch = Number(service.base_price) <= filters.price;
         const effectiveRating = Number(service.average_rating ?? service.rating ?? 0);
         const ratingMatch = effectiveRating >= filters.rating;
 
-        const searchHaystack = `${service.title} ${service.description} ${service.category.name}`.toLowerCase();
+        const categoryName = getCategoryName(service);
+        const searchHaystack = `${service.title} ${service.description} ${categoryName}`.toLowerCase();
         const searchMatch = activeSearch ? searchHaystack.includes(activeSearch) : true;
 
-        const locationHaystack = `${service.location || ""} ${service.description} ${service.category.name}`.toLowerCase();
+        const locationHaystack = `${service.location || ""} ${service.description} ${categoryName}`.toLowerCase();
         const locationMatch = normalizedLocation ? locationHaystack.includes(normalizedLocation) : true;
 
         const availabilityValue = (service.availability || "").toLowerCase();
@@ -118,9 +92,9 @@ export function ServicesPage() {
           ? (availabilityValue ? availabilityValue.includes(normalizedAvailability) : true)
           : true;
 
-        return categoryMatch && categoryDropdownMatch && priceMatch && ratingMatch && searchMatch && locationMatch && availabilityMatch;
+        return priceMatch && ratingMatch && searchMatch && locationMatch && availabilityMatch;
       }),
-    [services, categoryParam, filters, searchQuery],
+    [services, filters, searchQuery],
   );
 
   const handleBrowseAll = () => {

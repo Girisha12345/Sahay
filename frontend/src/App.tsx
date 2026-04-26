@@ -31,7 +31,6 @@ import { OrderSuccessPage } from "./pages/OrderSuccessPage";
 import { ProviderOnboarding } from "./provider/pages/ProviderOnboarding.jsx";
 import { ProviderDashboard } from "./provider/pages/ProviderDashboard.jsx";
 import { ProviderBookings } from "./provider/pages/ProviderBookings.jsx";
-import { ProviderServices } from "./provider/pages/ProviderServices.jsx";
 import { AddService } from "./provider/pages/AddService.jsx";
 import { ProviderEarnings } from "./provider/pages/ProviderEarnings.jsx";
 import { ProviderMessages } from "./provider/pages/ProviderMessages.jsx";
@@ -40,6 +39,7 @@ import { ProviderReviews } from "./provider/pages/ProviderReviews.jsx";
 import { ProviderProfile } from "./provider/pages/ProviderProfile.jsx";
 import { ProviderPayments } from "./provider/pages/ProviderPayments.jsx";
 import { ProviderSettings } from "./provider/pages/ProviderSettings.jsx";
+import { ProviderServicesPage } from "./pages/provider/services-page";
 import { useAuthStore } from "./store/authStore";
 import { useServiceStore } from "./store/serviceStore";
 import { getDashboardPathForRole } from "./utils/routes";
@@ -84,7 +84,7 @@ function App() {
         path="/provider/services"
         element={
           <ProtectedRoute roles={["PROVIDER"]}>
-            <ProviderServices />
+            <ProviderServicesPage />
           </ProtectedRoute>
         }
       />

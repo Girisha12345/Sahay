@@ -21,8 +21,8 @@ class PublicServiceListView(generics.ListAPIView):
 
 	def get_queryset(self):
 		qs = Service.objects.filter(
+			Q(provider__isnull=True) | Q(provider__is_verified_provider=True),
 			is_active=True,
-			provider__is_verified_provider=True,
 		).select_related("category", "provider")
 
 		category = self.request.query_params.get("category")
@@ -39,8 +39,8 @@ class PublicServiceDetailView(generics.RetrieveAPIView):
 	serializer_class = PublicServiceSerializer
 	permission_classes = [permissions.AllowAny]
 	queryset = Service.objects.filter(
+		Q(provider__isnull=True) | Q(provider__is_verified_provider=True),
 		is_active=True,
-		provider__is_verified_provider=True,
 	).select_related("category", "provider")
 
 

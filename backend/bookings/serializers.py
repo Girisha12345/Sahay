@@ -2,50 +2,40 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
+from accounts.privacy import PostBookingUserSerializer, PublicUserSerializer
 from accounts.models import User
-from accounts.privacy import mask_sensitive_data
 from bookings.models import Booking
 from services.models import Service
 
 
 class BookingSerializer(serializers.ModelSerializer):
-    provider_name = serializers.SerializerMethodField()
-    customer_public = serializers.SerializerMethodField()
-    provider_public = serializers.SerializerMethodField()
-    service_description = serializers.SerializerMethodField()
-    city = serializers.SerializerMethodField()
-    payment_status = serializers.SerializerMethodField()
-    has_review = serializers.SerializerMethodField()
-    review_rating = serializers.SerializerMethodField()
+    customer_info = serializers.SerializerMethodField()
+    provider_info = serializers.SerializerMethodField()
+
+    def _serialize_user(self, user, booking):
+        if booking.status in [
+            Booking.Status.IN_PROGRESS,
+            Booking.Status.COMPLETED,
+        ]:
+            return PostBookingUserSerializer(user).data
+        return PublicUserSerializer(user).data
+
+    def get_customer_info(self, obj):
+        return self._serialize_user(obj.customer, obj)
+
+    def get_provider_info(self, obj):
+        return self._serialize_user(obj.provider, obj)
 
     class Meta:
         model = Booking
         fields = [
             "id",
-            "customer",
-            "provider",
-            "provider_name",
-            "full_name",
-            "phone",
-            "address_line",
-            "area",
-            "customer_public",
-            "provider_public",
+            "customer_info",
+            "provider_info",
             "service",
-            "service_description",
             "status",
             "scheduled_date",
             "scheduled_time",
-            "address",
-            "locality",
-            "city",
-            "pincode",
-            "notes",
-            "payment_method",
-            "payment_status",
-            "has_review",
-            "review_rating",
-            "city",
             "total_price",
             "commission_amount",
             "final_provider_amount",
@@ -59,49 +49,6 @@ class BookingSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-    def get_provider_name(self, obj):
-        return obj.provider.first_name
-
-    def _is_revealed(self, obj):
-        return obj.status in {
-            Booking.Status.CONFIRMED,
-            Booking.Status.ACCEPTED,
-            Booking.Status.IN_PROGRESS,
-            Booking.Status.COMPLETED,
-            Booking.Status.REFUNDED,
-        }
-
-    def get_customer_public(self, obj):
-        revealed = self._is_revealed(obj)
-        data = mask_sensitive_data(obj.customer, reveal_contact=revealed)
-        data["completed_jobs"] = Booking.objects.filter(customer=obj.customer, status=Booking.Status.COMPLETED).count()
-        return data
-
-    def get_provider_public(self, obj):
-        revealed = self._is_revealed(obj)
-        data = mask_sensitive_data(obj.provider, reveal_contact=revealed)
-        data["completed_jobs"] = Booking.objects.filter(provider=obj.provider, status=Booking.Status.COMPLETED).count()
-        data["city"] = getattr(getattr(obj.provider, "provider_profile", None), "city", "")
-        return data
-
-    def get_service_description(self, obj):
-        return obj.service.description
-
-    def get_city(self, obj):
-        return getattr(getattr(obj.provider, "provider_profile", None), "city", "")
-
-    def get_payment_status(self, obj):
-        payment = getattr(obj, "payment", None)
-        return payment.payment_status if payment else None
-
-    def get_has_review(self, obj):
-        return hasattr(obj, "review") and obj.review is not None
-
-    def get_review_rating(self, obj):
-        if hasattr(obj, "review") and obj.review is not None:
-            return obj.review.rating
-        return None
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
@@ -219,6 +166,7 @@ class BookingStatusUpdateSerializer(serializers.ModelSerializer):
     def validate_status(self, value):
         allowed = {
             Booking.Status.PENDING_PAYMENT,
+            Booking.Status.REJECTED,
             Booking.Status.CONFIRMED,
             Booking.Status.ACCEPTED,
             Booking.Status.IN_PROGRESS,
@@ -228,6 +176,15 @@ class BookingStatusUpdateSerializer(serializers.ModelSerializer):
         }
         if value not in allowed:
             raise serializers.ValidationError("Invalid status transition target.")
+
+        booking = getattr(self.instance, "status", None)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if value == Booking.Status.REJECTED:
+            if not user or user.role != User.Role.PROVIDER:
+                raise serializers.ValidationError("Only providers can reject a booking.")
+            if booking != Booking.Status.PENDING:
+                raise serializers.ValidationError("REJECTED is only allowed when the booking is PENDING.")
         return value
 
 

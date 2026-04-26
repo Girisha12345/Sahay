@@ -32,6 +32,7 @@ export interface ServiceItem {
   review_count?: number;
   location?: string;
   availability?: string;
+  image?: string;
 }
 
 export interface ServiceReview {
@@ -218,4 +219,22 @@ export interface ProviderEarnings {
   release_date?: string;
   payment_date?: string;
   created_at: string;
+}
+
+export interface WalletTransaction {
+  id: number;
+  booking: number;
+  tx_type: "CREDIT" | "DEBIT";
+  amount: string;
+  commission_deducted: string;
+  description: string;
+  created_at: string;
+}
+
+export interface ProviderWallet {
+  total_earned: string;
+  total_commission_deducted: string;
+  pending_payout: string;
+  updated_at: string;
+  transactions: WalletTransaction[];
 }

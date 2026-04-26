@@ -1,168 +1,74 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { chatService } from "../services/chatService";
-import type { ChatMessage, User } from "../types";
+const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000";
 
-type UseChatSocketState = {
-  messages: ChatMessage[];
-  isConnecting: boolean;
-  isConnected: boolean;
-  isReconnecting: boolean;
-  isProviderTyping: boolean;
-  warning: string | null;
-  sendMessage: (text: string) => Promise<void>;
-  sendTyping: (isTyping: boolean) => void;
-};
+interface ChatMessage {
+  id: number;
+  sender: string;
+  sender_email?: string;
+  content: string;
+  created_at: string;
+  is_flagged?: boolean;
+  type?: string;
+  message?: string;
+}
 
-export function useChatSocket(bookingId: number | null, currentUser: User | null): UseChatSocketState {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+export function useChatSocket(bookingId: number | string | null, tokenOrUser: string | { id?: string } | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  const [isProviderTyping, setIsProviderTyping] = useState(false);
-  const [warning, setWarning] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!bookingId) return;
+    const token = typeof tokenOrUser === "string" ? tokenOrUser : localStorage.getItem("accessToken");
+    if (!token || !bookingId) return;
 
-    let retries = 0;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isActive = true;
-    let activeSocket: WebSocket | null = null;
+    const url = `${WS_BASE}/ws/chat/${bookingId}/?token=${token}`;
+    const ws = new WebSocket(url);
+    socketRef.current = ws;
 
-    const loadHistory = async () => {
-      try {
-        const { data } = await chatService.history(bookingId);
-        const normalized = (data as Array<{ id: number; sender: string; content: string; created_at: string }>).map((item) => ({
-          id: item.id,
-          sender_id: String(item.sender),
-          sender_role: String(item.sender) === currentUser?.id ? "CUSTOMER" : "PROVIDER",
-          message_text: item.content,
-          timestamp: item.created_at,
-        } as ChatMessage));
-        setMessages(normalized);
-      } catch {
-        setWarning("Unable to load previous messages.");
-      }
-    };
+    ws.onopen = () => setConnected(true);
+    ws.onclose = () => setConnected(false);
+    ws.onerror = () => setConnected(false);
 
-    const connect = () => {
-      if (!isActive) return;
-      setIsConnecting(true);
-      const ws = chatService.connectSocket(bookingId);
-      activeSocket = ws;
-      setSocket(ws);
-
-      ws.onopen = () => {
-        retries = 0;
-        setIsConnecting(false);
-        setIsConnected(true);
-        setIsReconnecting(false);
-        setWarning(null);
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        setIsConnecting(false);
-        if (!isActive) return;
-        retries += 1;
-        const waitMs = Math.min(1000 * retries, 6000);
-        setIsReconnecting(true);
-        setWarning("Reconnecting...");
-        reconnectTimer = setTimeout(connect, waitMs);
-      };
-
-      ws.onerror = () => {
-        setIsConnected(false);
-        setIsConnecting(false);
-      };
-
-      chatService.onMessage(ws, currentUser, (message) => {
-        if (message.is_typing) {
-          setIsProviderTyping(message.sender_role === "PROVIDER");
-          return;
-        }
-        setIsProviderTyping(false);
-        setMessages((prev) => [...prev, message]);
-        if (message.blocked) {
-          setWarning(message.message_text);
-        }
-      });
-    };
-
-    void loadHistory();
-    connect();
-
-    return () => {
-      isActive = false;
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-      activeSocket?.close();
-      setSocket(null);
-      setIsConnected(false);
-      setIsConnecting(false);
-      setIsReconnecting(false);
-      setIsProviderTyping(false);
-    };
-  }, [bookingId, currentUser]);
-
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || !bookingId) {
+    ws.onmessage = (event) => {
+      const data: ChatMessage = JSON.parse(event.data);
+      if (data.type === "error") {
+        setBlocked(data.message ?? "Message blocked.");
+        setTimeout(() => setBlocked(null), 5000);
         return;
       }
+      setMessages((prev) => [...prev, data]);
+    };
 
-      if (chatService.containsRestrictedContactData(trimmed)) {
-        setWarning("Sharing contact details is not allowed before booking confirmation.");
-        return;
-      }
+    return () => ws.close();
+  }, [bookingId, tokenOrUser]);
 
-      setWarning(null);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        chatService.sendTyping(socket, false);
-        chatService.sendMessage(socket, trimmed);
-        return;
-      }
+  const sendMessage = useCallback((content: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ message: content }));
+    }
+  }, []);
 
-      try {
-        const { data } = await chatService.sendMessageHttp({ booking_id: bookingId, message: trimmed });
-        const fallbackMessage: ChatMessage = {
-          id: data.id,
-          sender_id: String(data.sender),
-          sender_role: String(data.sender) === currentUser?.id ? "CUSTOMER" : "PROVIDER",
-          message_text: data.content,
-          timestamp: data.created_at,
-        };
-        setMessages((prev) => [...prev, fallbackMessage]);
-      } catch {
-        setWarning("Unable to send message right now.");
-      }
-    },
-    [bookingId, currentUser?.id, socket],
-  );
-
-  const sendTyping = useCallback(
-    (isTyping: boolean) => {
-      if (!socket || socket.readyState !== WebSocket.OPEN) return;
-      chatService.sendTyping(socket, isTyping);
-    },
-    [socket],
-  );
-
-  return useMemo(
-    () => ({
-      messages,
-      isConnecting,
-      isConnected,
-      isReconnecting,
-      isProviderTyping,
-      warning,
-      sendMessage,
-      sendTyping,
-    }),
-    [messages, isConnecting, isConnected, isReconnecting, isProviderTyping, warning, sendMessage, sendTyping],
-  );
+  // Backward-compatible fields for existing pages.
+  return {
+    messages: messages.map((item) => ({
+      id: item.id,
+      sender_id: item.sender,
+      sender_role: "CUSTOMER" as "CUSTOMER" | "PROVIDER" | "SYSTEM",
+      message_text: item.content,
+      timestamp: item.created_at,
+      blocked: Boolean(item.type === "error"),
+      is_typing: false,
+    })),
+    sendMessage: async (content: string) => sendMessage(content),
+    connected,
+    blocked,
+    isConnecting: false,
+    isConnected: connected,
+    isReconnecting: false,
+    isProviderTyping: false,
+    warning: blocked,
+    sendTyping: (_isTyping: boolean) => {},
+  };
 }

@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 env = environ.Env(
     DEBUG=(bool, False),
-    ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost", ".onrender.com", ".render.com"]),
+    ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost"]),
     CORS_ALLOWED_ORIGINS=(list, [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -23,7 +23,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY", default="change-me-in-production")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost", ".onrender.com", ".render.com"])
+ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 
 # Application definition
@@ -87,21 +87,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME", "sahay_db"),
+        "USER": os.getenv("DB_USER", "sahay_user"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 60,
+        "OPTIONS": {
+            "connect_timeout": 10,
+        },
+    }
+}
+
 if os.getenv("DATABASE_URL"):
-    DATABASES = {
-        "default": env.db("DATABASE_URL"),
-    }
-    DATABASES["default"]["CONN_MAX_AGE"] = 60
-    if DATABASES["default"].get("ENGINE") == "django.db.backends.postgresql":
-        DATABASES["default"].setdefault("OPTIONS", {})
-        DATABASES["default"]["OPTIONS"].setdefault("connect_timeout", 10)
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+    DATABASES["default"] = env.db("DATABASE_URL")
 
 
 # Password validation
@@ -138,15 +140,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-FRONTEND_DIST_DIR = BASE_DIR.parent / 'frontend' / 'dist'
-STATICFILES_DIRS = [FRONTEND_DIST_DIR] if FRONTEND_DIST_DIR.exists() else []
-STORAGES = {
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-    },
-}
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -154,16 +150,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ],
-)
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
@@ -232,6 +220,8 @@ RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET', default='')
 
 SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
+    'PERSIST_AUTH': True,
+    'SECURITY_REQUIREMENTS': [{'Bearer': []}],
     'SECURITY_DEFINITIONS': {
         'Bearer': {
             'type': 'apiKey',

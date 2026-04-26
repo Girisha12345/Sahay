@@ -1,14 +1,14 @@
 from rest_framework import serializers
 
-from chat.models import Message
+from chat.models import FlaggedMessageLog
 
 
-class FlaggedMessageSerializer(serializers.ModelSerializer):
-    sender_email = serializers.EmailField(source="sender.email", read_only=True)
+class FlaggedMessageLogSerializer(serializers.ModelSerializer):
+    sender_email = serializers.CharField(source="sender.email", read_only=True)
 
     class Meta:
-        model = Message
-        fields = ["id", "sender_email", "content", "is_flagged", "created_at"]
+        model = FlaggedMessageLog
+        fields = ["id", "booking", "sender_email", "raw_content", "flagged_at"]
 
 
 class ApproveProviderSerializer(serializers.Serializer):

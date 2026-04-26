@@ -13,6 +13,11 @@ CONTACT_SHARE_PATTERNS = [
 ]
 
 
+def contains_pii(text: str) -> bool:
+	"""Returns True if message contains phone, email, or social handle."""
+	return any(pattern.search(text or "") for pattern in CONTACT_SHARE_PATTERNS)
+
+
 class ChatRoom(models.Model):
 	booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name="chat_room")
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -34,3 +39,16 @@ class Message(models.Model):
 
 	def __str__(self):
 		return f"Message({self.id})"
+
+
+class FlaggedMessageLog(models.Model):
+	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="flagged_logs")
+	sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="flagged_attempts")
+	raw_content = models.TextField()
+	flagged_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["-flagged_at"]
+
+	def __str__(self):
+		return f"FlaggedLog(booking={self.booking_id}, sender={self.sender_id})"

@@ -6,9 +6,10 @@ from rest_framework.views import APIView
 from accounts.models import ProviderProfile, User
 from accounts.permissions import IsAdminRole
 from accounts.serializers import ProviderProfileSerializer
+from adminpanel.serializers import FlaggedMessageLogSerializer
 from bookings.models import Booking
-from adminpanel.serializers import ApproveProviderSerializer, FlaggedMessageSerializer
-from chat.models import Message
+from adminpanel.serializers import ApproveProviderSerializer
+from chat.models import FlaggedMessageLog
 from payments.models import Payment
 
 
@@ -27,7 +28,7 @@ class RevenueAnalyticsView(APIView):
 		)
 		completed_bookings = Booking.objects.filter(status=Booking.Status.COMPLETED).count()
 		by_status = Payment.objects.values("payment_status").annotate(total=Count("id"))
-		flagged_messages = Message.objects.filter(is_flagged=True).count()
+		flagged_messages = FlaggedMessageLog.objects.count()
 		return Response(
 			{
 				"totals": totals,
@@ -65,9 +66,29 @@ class ApproveProviderView(APIView):
 		return Response({"detail": "Provider approved."}, status=status.HTTP_200_OK)
 
 
+class RejectProviderView(APIView):
+	permission_classes = [IsAdminRole]
+
+	def patch(self, request):
+		serializer = ApproveProviderSerializer(data=request.data)
+		serializer.is_valid(raise_exception=True)
+		provider = User.objects.filter(id=serializer.validated_data["provider_id"], role=User.Role.PROVIDER).first()
+		if not provider:
+			return Response({"detail": "Provider not found."}, status=404)
+		profile = getattr(provider, "provider_profile", None)
+		if profile:
+			profile.verification_status = ProviderProfile.VerificationStatus.REJECTED
+			profile.save(update_fields=["verification_status"])
+		provider.is_verified_provider = False
+		provider.save(update_fields=["is_verified_provider"])
+		return Response({"detail": "Provider application rejected."})
+
+
 class FlaggedChatsView(APIView):
 	permission_classes = [IsAdminRole]
 
 	def get(self, request):
-		messages = Message.objects.filter(is_flagged=True).select_related("sender").order_by("-created_at")
-		return Response(FlaggedMessageSerializer(messages, many=True).data)
+		logs = FlaggedMessageLog.objects.select_related(
+			"sender", "booking"
+		).order_by("-flagged_at")
+		return Response(FlaggedMessageLogSerializer(logs, many=True).data)

@@ -8,6 +8,7 @@ class Booking(models.Model):
 	class Status(models.TextChoices):
 		PENDING_PAYMENT = "PENDING_PAYMENT", "Pending Payment"
 		PENDING = "PENDING", "Pending"
+		REJECTED = "REJECTED", "Rejected"
 		CONFIRMED = "CONFIRMED", "Confirmed"
 		ACCEPTED = "ACCEPTED", "Accepted"
 		IN_PROGRESS = "IN_PROGRESS", "In Progress"

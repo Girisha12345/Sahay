@@ -1,36 +1,42 @@
-from accounts.models import User
+from accounts.models import ProviderProfile, User
+from rest_framework import serializers
 
 
-def mask_sensitive_data(user: User, reveal_contact: bool = False) -> dict:
-    phone_number = user.phone_number or ""
-    email = user.email or ""
-    masked_phone = f"{'X' * max(len(phone_number) - 4, 0)}{phone_number[-4:]}" if phone_number else ""
-    email_user, _, email_domain = email.partition("@")
-    masked_email = f"{email_user[:1]}***@{email_domain}" if email_domain else email
+class PublicUserSerializer(serializers.ModelSerializer):
+    """
+    Safe public view - hides phone, email, last_name before booking is paid.
+    Use this everywhere a user profile is shown to the OTHER party.
+    """
+    verification_badge = serializers.SerializerMethodField()
 
-    data = {
-        "id": str(user.id),
-        "first_name": user.first_name,
-        "rating": getattr(getattr(user, "provider_profile", None), "rating", None),
-        "completed_jobs": getattr(user, "completed_jobs_count", 0),
-        "city": getattr(getattr(user, "provider_profile", None), "city", ""),
-    }
+    def get_verification_badge(self, obj):
+        return getattr(getattr(obj, "provider_profile", None), "verification_status", None) == ProviderProfile.VerificationStatus.APPROVED
 
-    if reveal_contact:
-        data.update(
-            {
-                "email": masked_email,
-                "phone_number": masked_phone,
-            }
-        )
-    else:
-        data.update(
-            {
-                "email": None,
-                "phone_number": None,
-            }
-        )
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "first_name",
+            "role",
+            "is_verified_provider",
+            "verification_badge",
+        ]
 
-    data["last_name"] = None
 
-    return data
+class PostBookingUserSerializer(serializers.ModelSerializer):
+    """
+    Full contact view - only revealed AFTER booking status is
+    IN_PROGRESS, COMPLETED. Never show before payment.
+    """
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "email",
+            "role",
+            "is_verified_provider",
+        ]

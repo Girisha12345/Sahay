@@ -5,6 +5,7 @@ from adminpanel.views import (
     FlaggedChatsView,
     PendingProvidersView,
     RevenueAnalyticsView,
+    RejectProviderView,
 )
 
 urlpatterns = [
@@ -12,6 +13,7 @@ urlpatterns = [
     path("revenue/", RevenueAnalyticsView.as_view(), name="admin-revenue-slash"),
     path("providers/pending", PendingProvidersView.as_view(), name="admin-pending-providers"),
     path("providers/approve", ApproveProviderView.as_view(), name="admin-approve-provider"),
+    path("providers/reject/", RejectProviderView.as_view(), name="reject-provider"),
     path("flagged-chats", FlaggedChatsView.as_view(), name="admin-flagged-chats"),
     path("flagged-messages", FlaggedChatsView.as_view(), name="admin-flagged-messages"),
 ]

@@ -1,7 +1,7 @@
 from django.db import models
+from django.conf import settings
 
 from bookings.models import Booking
-from accounts.models import User
 
 
 class Payment(models.Model):
@@ -25,27 +25,29 @@ class Payment(models.Model):
 		return f"Payment#{self.id} - {self.payment_status}"
 
 
-class Wallet(models.Model):
-	provider = models.OneToOneField(User, on_delete=models.CASCADE, related_name="wallet")
-	balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+class ProviderWallet(models.Model):
+	provider = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet")
+	total_earned = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+	total_commission_deducted = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+	pending_payout = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 	updated_at = models.DateTimeField(auto_now=True)
 
 	def __str__(self):
-		return f"Wallet({self.provider_id})"
+		return f"Wallet({self.provider.email})"
 
 
 class WalletTransaction(models.Model):
-	class TransactionType(models.TextChoices):
+	class TxType(models.TextChoices):
 		CREDIT = "CREDIT", "Credit"
 		DEBIT = "DEBIT", "Debit"
-		ESCROW_RELEASE = "ESCROW_RELEASE", "Escrow Release"
-		REFUND = "REFUND", "Refund"
 
-	wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="transactions")
-	amount = models.DecimalField(max_digits=12, decimal_places=2)
-	transaction_type = models.CharField(max_length=20, choices=TransactionType.choices)
-	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="wallet_transactions")
+	wallet = models.ForeignKey(ProviderWallet, on_delete=models.CASCADE, related_name="transactions")
+	booking = models.ForeignKey(Booking, on_delete=models.SET_NULL, null=True)
+	tx_type = models.CharField(max_length=10, choices=TxType.choices)
+	amount = models.DecimalField(max_digits=10, decimal_places=2)
+	commission_deducted = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+	description = models.CharField(max_length=255, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	def __str__(self):
-		return f"WalletTransaction({self.wallet_id}, {self.transaction_type})"
+		return f"Tx({self.tx_type}, {self.amount})"

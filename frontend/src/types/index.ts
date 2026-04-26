@@ -238,3 +238,27 @@ export interface ProviderWallet {
   updated_at: string;
   transactions: WalletTransaction[];
 }
+
+export interface WeeklyChartPoint {
+  week: string;
+  amount: number;
+}
+
+export interface TransactionRow {
+  id: number;
+  service: string;
+  customer: string;
+  amount: number;
+  date: string;
+  status: string;
+  tx_type: "CREDIT" | "DEBIT";
+}
+
+export interface WalletData {
+  total_earned: number;
+  monthly_earned: number;
+  pending_payout: number;
+  total_commission_deducted: number;
+  weekly_chart: WeeklyChartPoint[];
+  transactions: TransactionRow[];
+}

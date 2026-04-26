@@ -362,8 +362,60 @@ class ProviderWalletView(APIView):
 
 	def get(self, request):
 		wallet, _ = ProviderWallet.objects.get_or_create(provider=request.user)
-		serializer = ProviderWalletSerializer(wallet)
-		return Response(serializer.data)
+
+		from django.db.models import Sum
+		from django.db.models.functions import TruncWeek
+		from django.utils import timezone
+
+		now = timezone.now()
+		monthly = WalletTransaction.objects.filter(
+			wallet=wallet,
+			tx_type=WalletTransaction.TxType.CREDIT,
+			created_at__year=now.year,
+			created_at__month=now.month,
+		).aggregate(total=Sum("amount"))["total"] or 0
+
+		weekly_qs = (
+			WalletTransaction.objects
+			.filter(wallet=wallet, tx_type=WalletTransaction.TxType.CREDIT)
+			.annotate(week=TruncWeek("created_at"))
+			.values("week")
+			.annotate(total=Sum("amount"))
+			.order_by("week")
+		)
+		weekly_data = [
+			{
+				"week": item["week"].strftime("W%W") if item["week"] else "",
+				"amount": float(item["total"]),
+			}
+			for item in weekly_qs
+		]
+
+		transactions = WalletTransaction.objects.filter(
+			wallet=wallet
+		).select_related("booking__service", "booking__customer").order_by("-created_at")[:20]
+
+		tx_list = []
+		for tx in transactions:
+			booking = tx.booking
+			tx_list.append({
+				"id": tx.id,
+				"service": booking.service.title if booking and booking.service else "-",
+				"customer": booking.customer.first_name if booking and booking.customer else "-",
+				"amount": float(tx.amount),
+				"date": tx.created_at.strftime("%b %d"),
+				"status": booking.payment.payment_status if booking and hasattr(booking, "payment") else "-",
+				"tx_type": tx.tx_type,
+			})
+
+		return Response({
+			"total_earned": float(wallet.total_earned),
+			"monthly_earned": float(monthly),
+			"pending_payout": float(wallet.pending_payout),
+			"total_commission_deducted": float(wallet.total_commission_deducted),
+			"weekly_chart": weekly_data,
+			"transactions": tx_list,
+		})
 
 
 class RefundView(APIView):

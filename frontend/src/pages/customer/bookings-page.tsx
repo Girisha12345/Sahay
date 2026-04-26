@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { BackButton } from "../../components/BackButton";
 import { BookingCard } from "../../components/cards/booking-card";
@@ -10,11 +10,15 @@ import { EmptyState } from "../../components/ui/empty-state";
 import { Spinner } from "../../components/ui/spinner";
 import { reviewService } from "../../services/reviewService";
 import { useBookingStore } from "../../store/bookingStore";
+import { useServiceStore } from "../../store/serviceStore";
 import type { Booking } from "../../types";
 
 export function CustomerBookingsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { id } = useParams();
   const { bookings, loading, fetchCustomerBookings } = useBookingStore();
+  const { services } = useServiceStore();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -25,6 +29,16 @@ export function CustomerBookingsPage() {
   const completedUnreviewedCount = useMemo(
     () => bookings.filter((item) => item.status === "COMPLETED" && !item.has_review).length,
     [bookings],
+  );
+
+  const routeBookingId = Number(id || 0);
+  const activeBooking = useMemo(
+    () => (routeBookingId ? bookings.find((item) => item.id === routeBookingId) || null : null),
+    [bookings, routeBookingId],
+  );
+  const activeServiceName = useMemo(
+    () => services.find((item) => item.id === activeBooking?.service)?.title || "Service",
+    [activeBooking?.service, services],
   );
 
   useEffect(() => {
@@ -68,10 +82,24 @@ export function CustomerBookingsPage() {
   if (loading) return <Spinner />;
   if (!bookings.length) return <EmptyState title="No bookings yet" subtitle="Book your first service to get started." />;
 
+  if (id && routeBookingId && !activeBooking) {
+    return (
+      <div>
+        <BackButton />
+        <Card className="mt-4 p-6">
+          <div className="space-y-3">
+            <p className="text-red-600">Booking not found.</p>
+            <Button onClick={() => navigate("/customer/bookings")}>Back to bookings</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div>
       <BackButton />
-      <h1 className="text-2xl font-bold">My Bookings</h1>
+      <h1 className="text-2xl font-bold">{activeBooking ? `Booking #${activeBooking.id}` : "My Bookings"}</h1>
       {location.state?.successMessage && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {location.state.successMessage}
@@ -87,22 +115,77 @@ export function CustomerBookingsPage() {
           You have {completedUnreviewedCount} completed booking{completedUnreviewedCount > 1 ? "s" : ""} waiting for rating.
         </p>
       )}
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        {bookings.map((booking) => (
-          <div key={booking.id} className="space-y-2">
-            <BookingCard booking={booking} />
 
-            {booking.status === "COMPLETED" && !booking.has_review && (
-              <Button variant="secondary" onClick={() => openReviewForm(booking)}>
-                Rate Service
-              </Button>
-            )}
+      {activeBooking && (
+        <Card className="mt-5 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">Booking Details</p>
+              <h2 className="mt-1 text-xl font-bold text-slate-900">{activeServiceName}</h2>
+              <p className="mt-1 text-sm text-slate-500">Booking ID #{activeBooking.id}</p>
+            </div>
+            <Button variant="secondary" onClick={() => navigate("/customer/bookings")}>
+              Back to all bookings
+            </Button>
+          </div>
 
-            {booking.status === "COMPLETED" && booking.has_review && (
-              <p className="text-sm font-medium text-emerald-700">Rated: ⭐ {booking.review_rating?.toFixed(1) || "5.0"}</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{activeBooking.status}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schedule</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {activeBooking.scheduled_date} at {activeBooking.scheduled_time}
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Payment</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{activeBooking.payment_method.toUpperCase()}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">₹{activeBooking.total_price}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4 md:col-span-2 lg:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Address</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{activeBooking.address}</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {activeBooking.locality} • {activeBooking.pincode}
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4 md:col-span-2 lg:col-span-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Provider</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{activeBooking.provider_name || activeBooking.provider}</p>
+            </div>
+            {activeBooking.notes && (
+              <div className="rounded-xl bg-slate-50 p-4 md:col-span-2 lg:col-span-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</p>
+                <p className="mt-1 text-sm text-slate-700">{activeBooking.notes}</p>
+              </div>
             )}
           </div>
-        ))}
+        </Card>
+      )}
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        {!activeBooking &&
+          bookings.map((booking) => (
+            <div key={booking.id} className="space-y-2">
+              <BookingCard booking={booking} />
+
+              {booking.status === "COMPLETED" && !booking.has_review && (
+                <Button variant="secondary" onClick={() => openReviewForm(booking)}>
+                  Rate Service
+                </Button>
+              )}
+
+              {booking.status === "COMPLETED" && booking.has_review && (
+                <p className="text-sm font-medium text-emerald-700">Rated: ⭐ {booking.review_rating?.toFixed(1) || "5.0"}</p>
+              )}
+            </div>
+          ))}
       </div>
 
       {selectedBooking && (

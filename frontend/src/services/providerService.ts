@@ -5,12 +5,17 @@ export const providerService = {
   getDashboardStats: () => api.get("provider/dashboard/"),
   getProfile: () => api.get("provider/profile/"),
   updateProfile: (payload: {
+    full_name?: string;
+    phone_number?: string;
     skills?: string[];
     experience_years?: number;
     hourly_rate?: number;
     documents?: string[];
     city?: string;
-  }) => api.patch("provider/update-profile/", payload),
+    certificates?: string[];
+    service_areas?: string[];
+    languages_known?: string[];
+  }) => api.put("providers/profile/update/", payload),
 
   // Earnings
   getEarnings: () => api.get("provider/earnings/"),

@@ -152,7 +152,16 @@ export function ServicesPage() {
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((service) => (
-            <ServiceCard key={service.id} service={service} onBook={(serviceId) => navigate(`/booking/${serviceId}`)} />
+            <ServiceCard
+              key={service.id}
+              service={service}
+              onBook={(serviceId) => {
+                const selectedService = filtered.find((item) => item.id === serviceId);
+                navigate(`/checkout?serviceId=${serviceId}`, {
+                  state: selectedService ? { service: selectedService } : undefined,
+                });
+              }}
+            />
           ))}
         </div>
       )}

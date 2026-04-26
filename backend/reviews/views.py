@@ -1,5 +1,5 @@
 from rest_framework import generics, status, viewsets
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -101,6 +101,7 @@ class ReviewCreateView(generics.CreateAPIView):
 
 class ProviderReviewListView(generics.ListAPIView):
 	serializer_class = ReviewSerializer
+	permission_classes = [AllowAny]
 
 	def get_queryset(self):
 		provider_id = self.kwargs["id"]

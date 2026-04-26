@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -9,9 +9,11 @@ import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Spinner } from "../../components/ui/spinner";
 import { bookingService } from "../../services/bookingService";
+import { serviceService } from "../../services/serviceService";
 import { useAuthStore } from "../../store/authStore";
 import { currency } from "../../utils/format";
 import { useServiceStore } from "../../store/serviceStore";
+import type { ServiceItem } from "../../types";
 
 const bookingSchema = z.object({
   fullName: z.string().optional(),
@@ -36,6 +38,8 @@ export function BookingPage() {
   const { user } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [serviceDetail, setServiceDetail] = useState<ServiceItem | null>(null);
+  const [isServiceLoading, setIsServiceLoading] = useState(true);
 
   const {
     register,
@@ -45,9 +49,62 @@ export function BookingPage() {
     resolver: zodResolver(bookingSchema),
   });
 
-  const service = useMemo(() => services.find((item) => item.id === Number(id)), [services, id]);
+  const service = useMemo(() => {
+    if (!id) return null;
+    const parsedId = Number(id);
+    if (!Number.isFinite(parsedId)) return null;
+    return services.find((item) => item.id === parsedId) ?? serviceDetail;
+  }, [services, serviceDetail, id]);
 
-  if (!services.length) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadServiceById = async () => {
+      if (!id) {
+        if (isMounted) setIsServiceLoading(false);
+        return;
+      }
+
+      const parsedId = Number(id);
+      if (!Number.isFinite(parsedId)) {
+        if (isMounted) setIsServiceLoading(false);
+        return;
+      }
+
+      const fromStore = services.find((item) => item.id === parsedId);
+      if (fromStore) {
+        if (isMounted) {
+          setServiceDetail(fromStore);
+          setIsServiceLoading(false);
+        }
+        return;
+      }
+
+      if (isMounted) setIsServiceLoading(true);
+      try {
+        const { data } = await serviceService.serviceById(parsedId);
+        if (isMounted) {
+          setServiceDetail(data);
+        }
+      } catch {
+        if (isMounted) {
+          setServiceDetail(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsServiceLoading(false);
+        }
+      }
+    };
+
+    void loadServiceById();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [services, id]);
+
+  if (isServiceLoading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
         <Card>

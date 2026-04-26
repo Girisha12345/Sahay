@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "../../components/ui/button";
@@ -10,6 +10,7 @@ import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Spinner } from "../../components/ui/spinner";
 import { useAuthStore } from "../../store/authStore";
+import { getDashboardPathForRole } from "../../utils/routes";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -20,6 +21,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading, error, isAuthenticated, accessToken } = useAuthStore();
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
@@ -35,9 +37,22 @@ export function LoginPage() {
     try {
       await login(values.email, values.password);
       await useAuthStore.getState().loadProfile();
-      
-      // Always redirect to home page after successful login
-      navigate("/", { replace: true });
+
+      const currentUser = useAuthStore.getState().user;
+      const nextPath = searchParams.get("next");
+      if (currentUser?.role === "PROVIDER") {
+        const key = `provider_onboarding_done_${localStorage.getItem("accessToken") || "default"}`;
+        const completed = localStorage.getItem(key) === "true";
+        navigate(completed ? "/provider/dashboard" : "/provider/onboarding", { replace: true });
+        return;
+      }
+
+      if (currentUser?.role === "CUSTOMER" && nextPath) {
+        navigate(nextPath, { replace: true });
+        return;
+      }
+
+      navigate(getDashboardPathForRole(currentUser?.role), { replace: true });
     } catch (err) {
       // Error is handled by the store and displayed in the form
       console.error("Login failed:", err);

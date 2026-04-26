@@ -8,14 +8,33 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { useAuthStore } from "../../store/authStore";
 import { useServiceStore } from "../../store/serviceStore";
+import type { Category } from "../../types";
 import { CATEGORY_META } from "../../utils/constants";
 
 export function HomePage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const { user } = useAuthStore();
-  const { categories } = useServiceStore();
-  const topCategories = useMemo(() => categories.slice(0, 6), [categories]);
+  const { categories, services } = useServiceStore();
+  const topCategories = useMemo(() => {
+    const activeCategories = categories.filter((category) => category.is_active && category.name.trim().length > 0);
+    if (activeCategories.length) {
+      return activeCategories.slice(0, 6);
+    }
+
+    const uniqueFromServices = new Map<number, Category>();
+    for (const service of services) {
+      const category = service.category;
+      if (!category || !category.is_active || !category.name.trim().length) {
+        continue;
+      }
+      if (!uniqueFromServices.has(category.id)) {
+        uniqueFromServices.set(category.id, category);
+      }
+    }
+
+    return Array.from(uniqueFromServices.values()).slice(0, 6);
+  }, [categories, services]);
 
   const firstName = user?.first_name || "Guest";
 
@@ -66,17 +85,25 @@ export function HomePage() {
       <section>
         <h2 className="text-2xl font-bold text-slate-900">Popular Service Categories</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {topCategories.map((category) => {
-            const meta = CATEGORY_META[category.name] || { description: "On-demand local services" };
-            return (
-              <CategoryCard
-                key={category.id}
-                title={category.name}
-                description={meta.description}
-                onClick={() => navigate(`/services?category=${category.id}`)}
-              />
-            );
-          })}
+          {topCategories.length > 0 ? (
+            topCategories.map((category) => {
+              const meta = CATEGORY_META[category.name] || { description: "On-demand local services" };
+              return (
+                <CategoryCard
+                  key={category.id}
+                  title={category.name}
+                  description={meta.description}
+                  onClick={() => navigate(`/services?category=${category.id}`)}
+                />
+              );
+            })
+          ) : (
+            <Card className="col-span-full border-dashed p-6">
+              <h3 className="text-lg font-semibold text-slate-900">No popular categories available yet</h3>
+              <p className="mt-2 text-sm text-slate-600">Services will appear here once active categories and listings are available.</p>
+              <Button className="mt-4" onClick={() => navigate("/services")}>Browse All Services</Button>
+            </Card>
+          )}
         </div>
       </section>
 

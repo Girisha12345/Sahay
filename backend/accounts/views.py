@@ -1,4 +1,8 @@
+import logging
+
+from django.contrib.auth import authenticate
 from django.db.models import Count
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,13 +11,18 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import ProviderProfile, User
 from accounts.permissions import IsProviderRole
 from accounts.serializers import (
+	ChangePasswordSerializer,
 	LoginSerializer,
 	ProviderProfileSerializer,
+	ProviderProfileUpdateSerializer,
 	RegisterSerializer,
 	UserProfileUpdateSerializer,
 	UserSerializer,
 )
 from bookings.models import Booking
+
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterView(APIView):
@@ -29,18 +38,32 @@ class RegisterView(APIView):
 class LoginView(APIView):
 	permission_classes = [permissions.AllowAny]
 
+	@swagger_auto_schema(request_body=LoginSerializer)
 	def post(self, request):
-		serializer = LoginSerializer(data=request.data, context={"request": request})
-		serializer.is_valid(raise_exception=True)
-		user = serializer.validated_data["user"]
-		refresh = RefreshToken.for_user(user)
-		return Response(
-			{
-				"access": str(refresh.access_token),
-				"refresh": str(refresh),
-				"user": UserSerializer(user).data,
-			}
-		)
+		try:
+			serializer = LoginSerializer(data=request.data)
+			serializer.is_valid(raise_exception=True)
+			email = serializer.validated_data["email"].strip().lower()
+			password = serializer.validated_data["password"]
+
+			# User model sets USERNAME_FIELD to email, so pass email via username.
+			user = authenticate(request=request, username=email, password=password)
+			if not user:
+				return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+			if not user.is_active:
+				return Response({"error": "Account is disabled"}, status=status.HTTP_400_BAD_REQUEST)
+
+			refresh = RefreshToken.for_user(user)
+			return Response(
+				{
+					"access": str(refresh.access_token),
+					"refresh": str(refresh),
+					"user": UserSerializer(user).data,
+				}
+			)
+		except Exception:
+			logger.exception("Login failed due to unexpected error", extra={"path": request.path})
+			raise
 
 
 class LogoutView(APIView):
@@ -64,6 +87,14 @@ class ProfileUpdateView(APIView):
 		serializer.is_valid(raise_exception=True)
 		serializer.save()
 		return Response(UserSerializer(request.user).data)
+
+
+class ChangePasswordView(APIView):
+	def post(self, request):
+		serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		return Response({"detail": "Password changed successfully."})
 
 
 class ProviderApplyView(APIView):
@@ -103,11 +134,17 @@ class ProviderDashboardView(APIView):
 class ProviderUpdateProfileView(APIView):
 	permission_classes = [IsProviderRole]
 
-	def patch(self, request):
-		profile = getattr(request.user, "provider_profile", None)
-		if not profile:
-			return Response({"detail": "Provider profile not found."}, status=404)
-		serializer = ProviderProfileSerializer(profile, data=request.data, partial=True)
+	def put(self, request):
+		serializer = ProviderProfileUpdateSerializer(data=request.data, context={"request": request})
 		serializer.is_valid(raise_exception=True)
-		serializer.save()
-		return Response(serializer.data)
+		profile = serializer.save()
+		return Response(
+			{
+				"detail": "Provider profile updated successfully.",
+				"profile": ProviderProfileSerializer(profile).data,
+				"user": UserSerializer(request.user).data,
+			}
+		)
+
+	def patch(self, request):
+		return self.put(request)

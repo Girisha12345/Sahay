@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useParams } from "react-router-dom";
 
 import { MainLayout } from "./components/layout/main-layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -9,7 +9,6 @@ import { AdminFlaggedChatsPage } from "./pages/admin/flagged-chats-page";
 import { AdminProvidersPage } from "./pages/admin/providers-page";
 import { LoginPage } from "./pages/auth/login-page";
 import { RegisterPage } from "./pages/auth/register-page";
-import { BookingPage } from "./pages/customer/booking-page";
 import { CustomerAddresses } from "./pages/customer/CustomerAddresses";
 import { CustomerSupport } from "./pages/customer/CustomerSupport";
 import { CategoriesPage } from "./pages/customer/categories-page";
@@ -27,10 +26,20 @@ import { ServiceDetailPage } from "./pages/customer/ServiceDetail";
 import { NotFoundPage } from "./pages/not-found-page";
 import { NotificationsPage } from "./pages/notifications/NotificationsPage";
 import { SupportDashboardPage } from "./pages/support/SupportDashboardPage.tsx";
-import { ProviderBookingsPage } from "./pages/provider/bookings-page";
-import { ProviderDashboardPage } from "./pages/provider/dashboard-page";
-import { ProviderEarningsPage } from "./pages/provider/earnings-page";
-import { ProviderProfilePage } from "./pages/provider/profile-page";
+import { CheckoutPage } from "./pages/CheckoutPage";
+import { OrderSuccessPage } from "./pages/OrderSuccessPage";
+import { ProviderOnboarding } from "./provider/pages/ProviderOnboarding.jsx";
+import { ProviderDashboard } from "./provider/pages/ProviderDashboard.jsx";
+import { ProviderBookings } from "./provider/pages/ProviderBookings.jsx";
+import { ProviderServices } from "./provider/pages/ProviderServices.jsx";
+import { AddService } from "./provider/pages/AddService.jsx";
+import { ProviderEarnings } from "./provider/pages/ProviderEarnings.jsx";
+import { ProviderMessages } from "./provider/pages/ProviderMessages.jsx";
+import { ProviderAvailability } from "./provider/pages/ProviderAvailability.jsx";
+import { ProviderReviews } from "./provider/pages/ProviderReviews.jsx";
+import { ProviderProfile } from "./provider/pages/ProviderProfile.jsx";
+import { ProviderPayments } from "./provider/pages/ProviderPayments.jsx";
+import { ProviderSettings } from "./provider/pages/ProviderSettings.jsx";
 import { useAuthStore } from "./store/authStore";
 import { useServiceStore } from "./store/serviceStore";
 import { getDashboardPathForRole } from "./utils/routes";
@@ -46,8 +55,120 @@ function App() {
   }, [loadProfile, fetchCategories, fetchServices]);
 
   return (
-    <MainLayout>
-      <Routes>
+    <Routes>
+      <Route
+        path="/provider/onboarding"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderOnboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/dashboard"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/bookings"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderBookings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/services"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderServices />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/add-service"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <AddService />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/provider/services/new" element={<Navigate to="/provider/add-service" replace />} />
+      <Route
+        path="/provider/services/edit/:id"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <AddService />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/earnings"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderEarnings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/messages"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderMessages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/availability"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderAvailability />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/reviews"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderReviews />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/profile"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/payments"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderPayments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/provider/settings"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderSettings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        element={
+          <MainLayout>
+            <Outlet />
+          </MainLayout>
+        }
+      >
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -74,7 +195,7 @@ function App() {
           path="/booking/:id"
           element={
             <ProtectedRoute>
-              <BookingPage />
+              <LegacyBookingRedirect />
             </ProtectedRoute>
           }
         />
@@ -94,6 +215,22 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-success/:bookingId"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <OrderSuccessPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/customer/dashboard"
@@ -105,6 +242,14 @@ function App() {
         />
         <Route
           path="/customer/bookings"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <CustomerBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/bookings/:id"
           element={
             <ProtectedRoute roles={["CUSTOMER"]}>
               <CustomerBookingsPage />
@@ -161,39 +306,6 @@ function App() {
         />
 
         <Route
-          path="/provider/dashboard"
-          element={
-            <ProtectedRoute roles={["PROVIDER"]}>
-              <ProviderDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/provider/bookings"
-          element={
-            <ProtectedRoute roles={["PROVIDER"]}>
-              <ProviderBookingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/provider/earnings"
-          element={
-            <ProtectedRoute roles={["PROVIDER"]}>
-              <ProviderEarningsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/provider/profile"
-          element={
-            <ProtectedRoute roles={["PROVIDER"]}>
-              <ProviderProfilePage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/admin/dashboard"
           element={
             <ProtectedRoute roles={["ADMIN"]}>
@@ -236,8 +348,8 @@ function App() {
 
         <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </MainLayout>
+      </Route>
+    </Routes>
   );
 }
 
@@ -245,5 +357,18 @@ export default App;
 
 function RoleDashboardRedirect() {
   const { user } = useAuthStore();
+  if (user?.role === "PROVIDER") {
+    const key = `provider_onboarding_done_${localStorage.getItem("accessToken") || "default"}`;
+    const completed = localStorage.getItem(key) === "true";
+    return <Navigate to={completed ? "/provider/dashboard" : "/provider/onboarding"} replace />;
+  }
   return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+}
+
+function LegacyBookingRedirect() {
+  const { id } = useParams();
+  if (!id) {
+    return <Navigate to="/services" replace />;
+  }
+  return <Navigate to={`/checkout?serviceId=${id}`} replace />;
 }

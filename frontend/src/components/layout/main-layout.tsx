@@ -16,7 +16,8 @@ export function MainLayout({ children }: PropsWithChildren) {
   useEffect(() => {
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent<{ message: string }>;
-      setApiError(customEvent.detail?.message || "Unexpected API error");
+      const nextMessage = customEvent.detail?.message;
+      setApiError(nextMessage && nextMessage.trim().length > 0 ? nextMessage : null);
     };
     window.addEventListener("api:error", handler);
     return () => window.removeEventListener("api:error", handler);

@@ -57,7 +57,8 @@ export function ServiceCard({ service, onBook }: { service: ServiceItem; onBook:
             if (user) {
               onBook(service.id);
             } else {
-              navigate(`/login?next=/booking/${service.id}`);
+              const nextPath = encodeURIComponent(`/checkout?serviceId=${service.id}`);
+              navigate(`/login?next=${nextPath}`);
             }
           }}
         >

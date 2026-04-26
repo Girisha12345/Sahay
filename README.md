@@ -1,13 +1,13 @@
 # Sahāy
 
-Sahāy is a full-stack SaaS marketplace for local services. It supports customer booking flows, provider management, support ticket handling, admin moderation, secure payments, and realtime chat/notifications.
+Sahāy is a full-stack SaaS marketplace for local services. The current implementation already includes authenticated customer, provider, support, and admin workflows with booking, checkout, chat, notification, and moderation features connected across the frontend and backend.
 
 ## Project Overview
 
 The application is structured as a multi-role platform with role-based routing and permissions:
 
-- Customer: search services, create bookings, pay, chat, and review providers.
-- Provider: manage bookings, earnings, and profile details.
+- Customer: search services, create bookings, pay, chat, manage addresses, and review providers.
+- Provider: manage bookings, earnings, services, availability, and profile details.
 - Support Agent: handle customer support tickets and escalations.
 - Admin: manage platform operations, analytics, moderation, and approvals.
 
@@ -47,6 +47,65 @@ The application is structured as a multi-role platform with role-based routing a
 - React Router
 - Recharts
 - Lucide React
+
+## Completed Work
+
+### Authentication and Access Control
+
+- JWT login, registration, profile loading, and session persistence
+- Auto-redirects for authenticated users and logout cleanup
+- Role-based route protection for customer, provider, support, and admin users
+
+### Customer Experience
+
+- Public homepage with personalized greetings for signed-in users
+- Service browsing, search, filtering, and service detail pages
+- Customer dashboard, bookings, chat, notifications, profile, and saved address flows
+- Booking creation with date, time, address, and payment method selection
+- Order success and payment success pages
+
+### Checkout and Payments
+
+- Multi-step checkout flow with address selection and address creation
+- Order summary, payment method selection, and validation feedback
+- Razorpay test-mode payment flow and cash payment support
+- Booking creation, payment order creation, payment verification, and booking updates
+- 10% commission handling and payment lifecycle support
+
+### Provider Workspace
+
+- Provider dashboard with booking overview, earnings, ratings, and profile actions
+- Booking management for accepting, rejecting, starting, and completing jobs
+- Earnings tracking and service management
+- Provider profile and availability controls
+
+### Support and Admin Operations
+
+- Dedicated support dashboard for support agents
+- Support ticket workflow and escalation handling
+- Admin dashboard, provider review, category moderation, and flagged chat review pages
+- Role-safe separation between support-owned and admin-only surfaces
+
+### Realtime Communication and Safety
+
+- Anonymous in-app chat backed by WebSockets
+- Realtime notifications delivered over WebSockets
+- Phone-number sharing blocked in chat by regex-based filtering
+- Masking and privacy protections for sensitive booking details
+
+### Backend and Platform Foundations
+
+- Django REST backend split into accounts, services, bookings, payments, reviews, chat, notifications, support, and admin modules
+- API serializers, permissions, signals, and utility layers for reusable business rules
+- PostgreSQL, Redis, and Channels support for persistent and realtime features
+- Swagger API documentation and seed-data support for local development
+
+### UI and Frontend Quality
+
+- Responsive Tailwind UI with cards, empty states, loading states, and status badges
+- Shared layout, navbar, button, spinner, and form components
+- Zustand stores and service clients for state and API integration
+- TypeScript-based frontend structure with route-level page separation
 
 ## Folder Structure
 
@@ -88,11 +147,9 @@ sahayy/
 
 ```bash
 cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver 127.0.0.1:8000
+..\.venv\Scripts\python.exe -m pip install -r requirements.txt
+..\.venv\Scripts\python.exe manage.py migrate
+..\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
 ### Frontend Setup
@@ -101,6 +158,15 @@ python manage.py runserver 127.0.0.1:8000
 cd frontend
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+### Frontend Environment
+
+Create a `frontend/.env` file if you want to override the default API endpoints:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000/api/
+VITE_WS_URL=ws://127.0.0.1:8000
 ```
 
 ## Environment Variables
@@ -151,6 +217,22 @@ RAZORPAY_KEY_SECRET=
 - Realtime chat and notifications connect
 - Empty states and loading states render correctly
 - No hardcoded secrets are committed
+
+## Current Deliverables
+
+- Authentication flow and role redirects
+- Customer browsing, booking, checkout, and success pages
+- Provider dashboard, bookings, earnings, services, and profile pages
+- Support dashboard and support ticket workflow
+- Admin moderation and flagged content review pages
+- Chat, notifications, and privacy protections
+- Shared frontend and backend documentation
+
+## Troubleshooting
+
+- If login shows `Network error. Please check your internet connection.`, make sure the Django backend is running on `http://127.0.0.1:8000`.
+- If `Book Now` opens a loading state, refresh the page after the frontend and backend are both running; the booking page now falls back to loading service details by ID, but it still needs the API server online.
+- If service cards or categories are empty, verify that the backend API returns data from `http://127.0.0.1:8000/api/categories` and `http://127.0.0.1:8000/api/services/`.
 
 ## Report
 

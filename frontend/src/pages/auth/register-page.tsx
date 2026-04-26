@@ -10,6 +10,7 @@ import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Spinner } from "../../components/ui/spinner";
 import { useAuthStore } from "../../store/authStore";
+import { getDashboardPathForRole } from "../../utils/routes";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -24,7 +25,7 @@ type FormValues = z.infer<typeof schema>;
 export function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const { register: registerUser, loading, error } = useAuthStore();
+  const { register: registerUser, login, loading, error } = useAuthStore();
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { role: "CUSTOMER" },
@@ -40,7 +41,19 @@ export function RegisterPage() {
       password: values.password,
       role: values.role,
     });
-    navigate("/login");
+
+    await login(values.email, values.password);
+    await useAuthStore.getState().loadProfile();
+
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser?.role === "PROVIDER") {
+      const key = `provider_onboarding_done_${localStorage.getItem("accessToken") || "default"}`;
+      localStorage.removeItem(key);
+      navigate("/provider/onboarding", { replace: true });
+      return;
+    }
+
+    navigate(getDashboardPathForRole(currentUser?.role), { replace: true });
   };
 
   return (

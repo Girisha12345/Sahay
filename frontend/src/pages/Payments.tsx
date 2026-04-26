@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 
+import { BackButton } from "../components/BackButton";
 import { PaymentCard } from "../components/PaymentCard";
 import { EmptyState } from "../components/ui/empty-state";
 import { Spinner } from "../components/ui/spinner";
@@ -213,6 +214,7 @@ export function PaymentsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <BackButton />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Payment History</h1>
         <p className="mt-1 text-sm text-slate-500">Track your past transactions and invoices.</p>
@@ -270,7 +272,7 @@ export function PaymentsPage() {
               key={payment.id}
               payment={payment}
               onDownloadInvoice={handleDownloadInvoice}
-              onViewDetails={() => navigate("/customer/bookings")}
+              onViewDetails={(selectedPayment) => navigate(`/customer/bookings/${selectedPayment.booking}`)}
             />
           ))}
         </div>

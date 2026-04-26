@@ -15,7 +15,12 @@ class GlobalExceptionMiddleware:
         return self.get_response(request)
 
     def process_exception(self, request, exception):
-        logger.exception("Unhandled API exception", exc_info=exception)
+        logger.exception(
+            "Unhandled API exception: %s %s - %s",
+            request.method,
+            request.path,
+            str(exception),
+        )
         return JsonResponse(
             {
                 "detail": "An unexpected error occurred.",

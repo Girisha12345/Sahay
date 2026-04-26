@@ -10,3 +10,12 @@ class IsCustomerOrAdmin(BasePermission):
             and request.user.is_authenticated
             and request.user.role in [User.Role.CUSTOMER, User.Role.ADMIN]
         )
+
+
+class IsCustomerProviderOrAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in [User.Role.CUSTOMER, User.Role.PROVIDER, User.Role.ADMIN]
+        )

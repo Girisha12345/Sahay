@@ -1,8 +1,6 @@
-const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
-const wsUrl = (import.meta.env.VITE_WS_URL as string | undefined)?.trim();
+import { API_BASE_URL, WS_BASE_URL } from "../config/apiConfig";
 
-export const API_BASE_URL = apiUrl && apiUrl.length > 0 ? apiUrl : "http://127.0.0.1:8000/api/";
-export const WS_BASE_URL = wsUrl && wsUrl.length > 0 ? wsUrl : "ws://127.0.0.1:8000";
+export { API_BASE_URL, WS_BASE_URL };
 
 export const CATEGORY_META: Record<string, { description: string }> = {
   "HOME SERVICES": { description: "Plumbing, electrical, carpentry and more" },

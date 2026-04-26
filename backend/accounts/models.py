@@ -11,7 +11,7 @@ class UserManager(BaseUserManager):
 			raise ValueError("Email is required")
 		if not phone_number:
 			raise ValueError("Phone number is required")
-		email = self.normalize_email(email)
+		email = self.normalize_email(email.strip()).lower()
 		user = self.model(email=email, phone_number=phone_number, **extra_fields)
 		user.set_password(password)
 		user.save(using=self._db)
@@ -63,6 +63,9 @@ class ProviderProfile(models.Model):
 	experience_years = models.PositiveIntegerField(default=0)
 	hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 	documents = models.JSONField(default=list, blank=True)
+	certificates = models.JSONField(default=list, blank=True)
+	service_areas = models.JSONField(default=list, blank=True)
+	languages_known = models.JSONField(default=list, blank=True)
 	verification_status = models.CharField(
 		max_length=10,
 		choices=VerificationStatus.choices,

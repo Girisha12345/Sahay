@@ -66,6 +66,8 @@ class ProviderProfile(models.Model):
 	certificates = models.JSONField(default=list, blank=True)
 	service_areas = models.JSONField(default=list, blank=True)
 	languages_known = models.JSONField(default=list, blank=True)
+	is_available = models.BooleanField(default=True)
+	availability_schedule = models.JSONField(default=list, blank=True)
 	verification_status = models.CharField(
 		max_length=10,
 		choices=VerificationStatus.choices,

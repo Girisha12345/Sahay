@@ -33,22 +33,27 @@ const normalizeService = (service: RawService): ServiceItem => ({
 });
 
 export const providerServiceApi = {
+  getMyServices: () => providerServiceApi.listMyServices(),
   listMyServices: () =>
     api.get("services/my/").then((response) => ({
       ...response,
       data: Array.isArray(response.data) ? response.data.map((item) => normalizeService(item as RawService)) : [],
     })),
+  createService: (payload: ProviderServicePayload) => providerServiceApi.createMyService(payload),
   createMyService: (payload: ProviderServicePayload) =>
     api.post("services/my/", payload).then((response) => ({
       ...response,
       data: normalizeService(response.data as RawService),
     })),
+  updateService: (id: number, payload: Partial<ProviderServicePayload>) => providerServiceApi.updateMyService(id, payload),
   updateMyService: (id: number, payload: Partial<ProviderServicePayload>) =>
     api.patch(`services/my/${id}/`, payload).then((response) => ({
       ...response,
       data: normalizeService(response.data as RawService),
     })),
+  deleteService: (id: number) => providerServiceApi.deleteMyService(id),
   deleteMyService: (id: number) => api.delete(`services/my/${id}/`),
+  toggleService: (id: number) => providerServiceApi.toggleMyService(id),
   toggleMyService: (id: number) =>
     api.post(`services/my/${id}/toggle/`, {}).then((response) => ({
       ...response,

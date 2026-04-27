@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Activity, CalendarClock, CheckCircle2, DollarSign, Star } from "lucide-react";
 
@@ -6,6 +6,7 @@ import { ProviderLayout } from "../components/ProviderLayout";
 import { StatsCard } from "../components/StatsCard";
 import { bookingService } from "../../services/bookingService";
 import { authService } from "../../services/authService";
+import { paymentService } from "../../services/paymentService";
 import { useAuthStore } from "../../store/authStore";
 
 const formatDate = (value) => {
@@ -20,8 +21,8 @@ export function ProviderDashboard() {
   const { user } = useAuthStore();
   const [dashboard, setDashboard] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const monthly = useMemo(() => [35, 52, 41, 63, 56, 74], []);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -33,9 +34,17 @@ export function ProviderDashboard() {
         ]);
         setDashboard(dashboardResponse.data);
         setBookings((bookingsResponse.data ?? []).slice(0, 3));
+
+        try {
+          const walletRes = await paymentService.getWallet();
+          setChartData(walletRes.data?.weekly_chart ?? []);
+        } catch {
+          setChartData([]);
+        }
       } catch {
         setDashboard(null);
         setBookings([]);
+        setChartData([]);
       } finally {
         setLoading(false);
       }
@@ -144,12 +153,19 @@ export function ProviderDashboard() {
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="text-base font-semibold text-slate-900">Monthly earnings trend</h3>
         <div className="mt-4 grid h-44 grid-cols-6 items-end gap-3">
-          {monthly.map((val, i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div className="w-full rounded-t-lg bg-gradient-to-t from-sky-600 to-cyan-500" style={{ height: `${val * 1.6}px` }} />
-              <span className="text-xs text-slate-500">M{i + 1}</span>
-            </div>
-          ))}
+          {chartData.length === 0 ? (
+            <p className="col-span-6 py-8 text-center text-sm text-slate-400">No earnings data yet. Complete bookings to see the chart.</p>
+          ) : (
+            (() => {
+              const maxVal = Math.max(...chartData.map((w) => Number(w.amount || 0)), 1);
+              return chartData.map((w, i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-full rounded-t-lg bg-gradient-to-t from-sky-600 to-cyan-500" style={{ height: `${Math.max(8, (Number(w.amount || 0) / maxVal) * 140)}px` }} />
+                  <span className="text-xs text-slate-500">{w.week}</span>
+                </div>
+              ));
+            })()
+          )}
         </div>
       </div>
     </ProviderLayout>

@@ -1,38 +1,70 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ProviderLayout } from "../components/ProviderLayout";
+import { providerServiceApi } from "../../services/providerServiceApi";
+import { serviceService } from "../../services/serviceService";
 
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const days = Array.from({ length: 7 }, (_, index) =>
+  new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(new Date(Date.UTC(2024, 0, 1 + index))),
+);
 
 export function AddService() {
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
     category: "",
     description: "",
-    price: "",
-    duration: "",
+    base_price: "",
+    duration_minutes: "60",
     location: "",
-    image: "",
-    timeSlots: "",
   });
   const [availableDays, setAvailableDays] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    serviceService
+      .getCategories()
+      .then((res) => setCategories(res.data ?? []))
+      .catch(() => setCategories([]));
+  }, []);
 
   const toggleDay = (day) => {
     setAvailableDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    const payload = { ...form, availableDays };
-    localStorage.setItem("provider_service_draft", JSON.stringify(payload));
-    navigate("/provider/services");
+    setError("");
+    if (!form.category) {
+      setError("Please select a category.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await providerServiceApi.createService({
+        title: form.title,
+        description: form.description,
+        base_price: Number(form.base_price),
+        category: Number(form.category),
+        duration_minutes: Number(form.duration_minutes) || 60,
+        location: form.location,
+        is_active: true,
+      });
+      navigate("/provider/services");
+    } catch {
+      setError("Failed to save service. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <ProviderLayout title="Add / Edit Service" subtitle="Create a high-converting service listing">
       <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        {error && <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-medium text-slate-700">Service title
             <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -40,29 +72,24 @@ export function AddService() {
           <label className="text-sm font-medium text-slate-700">Category
             <select className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               <option value="">Select category</option>
-              <option>Home Services</option>
-              <option>Cleaning Services</option>
-              <option>Beauty & Salon</option>
-              <option>Automobile</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700 md:col-span-2">Description
             <textarea className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </label>
           <label className="text-sm font-medium text-slate-700">Price
-            <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="₹999" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+            <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="₹999" required value={form.base_price} onChange={(e) => setForm({ ...form, base_price: e.target.value })} />
           </label>
           <label className="text-sm font-medium text-slate-700">Service duration
-            <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="60 mins" required value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
+            <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="60 mins" required value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
           </label>
           <label className="text-sm font-medium text-slate-700">Location served
             <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="Bengaluru" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-          </label>
-          <label className="text-sm font-medium text-slate-700">Upload image URL
-            <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="https://..." value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-          </label>
-          <label className="text-sm font-medium text-slate-700 md:col-span-2">Available time slots
-            <input className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" placeholder="09:00-12:00, 14:00-18:00" required value={form.timeSlots} onChange={(e) => setForm({ ...form, timeSlots: e.target.value })} />
           </label>
         </div>
 
@@ -77,7 +104,7 @@ export function AddService() {
           </div>
         </div>
 
-        <button type="submit" className="mt-6 rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-700">Save Service</button>
+        <button type="submit" disabled={loading} className="mt-6 rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50">{loading ? "Saving..." : "Save Service"}</button>
       </form>
     </ProviderLayout>
   );

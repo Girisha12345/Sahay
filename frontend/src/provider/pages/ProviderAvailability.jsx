@@ -4,16 +4,15 @@ import { ProviderLayout } from "../components/ProviderLayout";
 import { Spinner } from "../../components/ui/spinner";
 import api from "../../services/api";
 
-const DEFAULT_SCHEDULE = Array.from({ length: 7 }, (_, index) => {
-  const baseDate = new Date(Date.UTC(2024, 0, 1 + index));
-  const day = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(baseDate);
-  return {
-    day,
-    from: "09:00",
-    to: "18:00",
-    enabled: day !== "Sunday",
-  };
-});
+const DEFAULT_SCHEDULE = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+].map((day) => ({ day, from: "09:00", to: "18:00", enabled: day !== "Sunday" }));
 
 export function ProviderAvailability() {
   const [isAvailable, setIsAvailable] = useState(true);
@@ -26,10 +25,12 @@ export function ProviderAvailability() {
     api
       .get("provider/availability/")
       .then((res) => {
+        if (res.data?.schedule) setSchedule(res.data.schedule);
         if (typeof res.data?.is_available === "boolean") setIsAvailable(res.data.is_available);
-        if (Array.isArray(res.data?.schedule) && res.data.schedule.length) setSchedule(res.data.schedule);
       })
-      .catch(() => setMessage("Could not load availability right now."))
+      .catch(() => {
+        // Use defaults silently when the endpoint is unavailable.
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -54,9 +55,7 @@ export function ProviderAvailability() {
   return (
     <ProviderLayout title="Availability" subtitle="Define your working hours and live availability">
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Spinner />
-        </div>
+        <div className="flex h-64 items-center justify-center"><Spinner /></div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4">

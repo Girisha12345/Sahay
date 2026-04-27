@@ -42,15 +42,13 @@ export function ProviderServices() {
       }
     >
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Spinner />
-        </div>
+        <div className="flex h-64 items-center justify-center"><Spinner /></div>
       ) : error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">{error}</div>
       ) : services.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
           <p className="font-semibold text-slate-600">No services yet</p>
-          <p className="mt-1 text-sm text-slate-400">Go to Add Service to create your first listing.</p>
+          <p className="mt-1 text-sm text-slate-400">Go to My Services to add your first listing.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -34,7 +34,6 @@ export function ProviderDashboard() {
         ]);
         setDashboard(dashboardResponse.data);
         setBookings((bookingsResponse.data ?? []).slice(0, 3));
-
         try {
           const walletRes = await paymentService.getWallet();
           setChartData(walletRes.data?.weekly_chart ?? []);
@@ -155,17 +154,18 @@ export function ProviderDashboard() {
         <div className="mt-4 grid h-44 grid-cols-6 items-end gap-3">
           {chartData.length === 0 ? (
             <p className="col-span-6 py-8 text-center text-sm text-slate-400">No earnings data yet. Complete bookings to see the chart.</p>
-          ) : (
-            (() => {
-              const maxVal = Math.max(...chartData.map((w) => Number(w.amount || 0)), 1);
-              return chartData.map((w, i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="w-full rounded-t-lg bg-gradient-to-t from-sky-600 to-cyan-500" style={{ height: `${Math.max(8, (Number(w.amount || 0) / maxVal) * 140)}px` }} />
-                  <span className="text-xs text-slate-500">{w.week}</span>
-                </div>
-              ));
-            })()
-          )}
+          ) : (() => {
+            const maxVal = Math.max(...chartData.map((w) => w.amount), 1);
+            return chartData.map((w, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <div
+                  className="w-full rounded-t-lg bg-gradient-to-t from-sky-600 to-cyan-500"
+                  style={{ height: `${Math.max(8, (w.amount / maxVal) * 140)}px` }}
+                />
+                <span className="text-xs text-slate-500">{w.week}</span>
+              </div>
+            ));
+          })()}
         </div>
       </div>
     </ProviderLayout>

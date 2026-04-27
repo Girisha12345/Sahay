@@ -78,12 +78,12 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
             "certificates",
             "service_areas",
             "languages_known",
-            "is_available",
-            "availability_schedule",
             "skills",
             "experience_years",
             "hourly_rate",
             "documents",
+            "is_available",
+            "availability_schedule",
             "verification_status",
             "city",
             "rating",
@@ -101,8 +101,6 @@ class ProviderProfileUpdateSerializer(serializers.Serializer):
     certificates = serializers.ListField(child=serializers.CharField(max_length=200), allow_empty=True, required=False)
     service_areas = serializers.ListField(child=serializers.CharField(max_length=120), allow_empty=True, required=False)
     languages_known = serializers.ListField(child=serializers.CharField(max_length=80), allow_empty=True, required=False)
-    is_available = serializers.BooleanField(required=False)
-    availability_schedule = serializers.ListField(child=serializers.DictField(), required=False)
 
     def validate_phone_number(self, value):
         phone = (value or "").strip()
@@ -144,8 +142,6 @@ class ProviderProfileUpdateSerializer(serializers.Serializer):
         profile.certificates = self.validated_data.get("certificates", [])
         profile.service_areas = self.validated_data.get("service_areas", [])
         profile.languages_known = self.validated_data.get("languages_known", [])
-        profile.is_available = self.validated_data.get("is_available", profile.is_available)
-        profile.availability_schedule = self.validated_data.get("availability_schedule", profile.availability_schedule)
         profile.save(
             update_fields=[
                 "skills",
@@ -153,8 +149,6 @@ class ProviderProfileUpdateSerializer(serializers.Serializer):
                 "certificates",
                 "service_areas",
                 "languages_known",
-                "is_available",
-                "availability_schedule",
                 "updated_at",
             ]
         )

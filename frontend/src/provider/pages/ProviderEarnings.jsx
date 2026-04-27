@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DollarSign, Wallet, Banknote } from "lucide-react";
+
 import { ProviderLayout } from "../components/ProviderLayout";
 import { StatsCard } from "../components/StatsCard";
 import { Spinner } from "../../components/ui/spinner";
@@ -50,7 +51,7 @@ export function ProviderEarnings() {
     );
 
   const chartData = wallet?.weekly_chart ?? [];
-  const maxVal = Math.max(...chartData.map((w) => Number(w.amount || 0)), 1);
+  const maxVal = Math.max(...chartData.map((w) => w.amount), 1);
 
   return (
     <ProviderLayout title="Earnings" subtitle="Track payouts, trends, and payment status">
@@ -70,7 +71,7 @@ export function ProviderEarnings() {
               <div key={i} className="flex flex-1 flex-col items-center gap-2">
                 <div
                   className="w-full rounded-t-lg bg-gradient-to-t from-emerald-500 to-cyan-500"
-                  style={{ height: `${Math.max(8, (Number(w.amount || 0) / maxVal) * 160)}px` }}
+                  style={{ height: `${Math.max(8, (w.amount / maxVal) * 160)}px` }}
                 />
                 <span className="text-xs text-slate-500">{w.week}</span>
               </div>

@@ -154,9 +154,7 @@ class ProviderAvailabilityView(APIView):
 	permission_classes = [IsProviderRole]
 
 	def get(self, request):
-		profile = getattr(request.user, "provider_profile", None)
-		if not profile:
-			profile = ProviderProfile.objects.create(user=request.user)
+		profile, _ = ProviderProfile.objects.get_or_create(user=request.user)
 		return Response(
 			{
 				"is_available": profile.is_available,
@@ -165,10 +163,7 @@ class ProviderAvailabilityView(APIView):
 		)
 
 	def post(self, request):
-		profile = getattr(request.user, "provider_profile", None)
-		if not profile:
-			profile = ProviderProfile.objects.create(user=request.user)
-
+		profile, _ = ProviderProfile.objects.get_or_create(user=request.user)
 		profile.is_available = bool(request.data.get("is_available", profile.is_available))
 		schedule = request.data.get("schedule")
 		if isinstance(schedule, list):
@@ -176,7 +171,7 @@ class ProviderAvailabilityView(APIView):
 		profile.save(update_fields=["is_available", "availability_schedule", "updated_at"])
 		return Response(
 			{
-				"detail": "Availability updated successfully.",
+				"detail": "Availability saved successfully.",
 				"is_available": profile.is_available,
 				"schedule": profile.availability_schedule,
 			}

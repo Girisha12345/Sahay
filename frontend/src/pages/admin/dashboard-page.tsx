@@ -2,34 +2,19 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card } from "../../components/ui/card";
 import { Spinner } from "../../components/ui/spinner";
 import { adminService, type AdminRevenueAnalytics } from "../../services/adminService";
 
-type ChartRow = {
-  label: string;
-  value: number;
-};
-
-const EMPTY_ANALYTICS: AdminRevenueAnalytics = {
-  totals: { revenue: 0, commission: 0, provider_earnings: 0 },
-  payment_status: [],
-  completed_bookings: 0,
-  flagged_messages: 0,
-};
-
 export function AdminDashboardPage() {
-  const [analytics, setAnalytics] = useState<AdminRevenueAnalytics>(EMPTY_ANALYTICS);
+  const [analytics, setAnalytics] = useState<AdminRevenueAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -60,24 +45,6 @@ export function AdminDashboardPage() {
     };
   }, []);
 
-  const trendData = useMemo<ChartRow[]>(
-    () => [
-      { label: "Revenue", value: Number(analytics.totals.revenue || 0) },
-      { label: "Commission", value: Number(analytics.totals.commission || 0) },
-      { label: "Provider", value: Number(analytics.totals.provider_earnings || 0) },
-    ],
-    [analytics],
-  );
-
-  const statusData = useMemo<ChartRow[]>(
-    () =>
-      analytics.payment_status.map((item) => ({
-        label: item.payment_status,
-        value: item.total,
-      })),
-    [analytics],
-  );
-
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -96,19 +63,19 @@ export function AdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <p className="text-xs uppercase tracking-wide text-slate-500">Revenue</p>
-          <p className="mt-2 text-2xl font-bold">₹{Number(analytics.totals.revenue || 0).toLocaleString()}</p>
+          <p className="mt-2 text-2xl font-bold">₹{analytics?.total_revenue?.toLocaleString("en-IN") ?? "..."}</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Commission</p>
-          <p className="mt-2 text-2xl font-bold">₹{Number(analytics.totals.commission || 0).toLocaleString()}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Total Bookings</p>
+          <p className="mt-2 text-2xl font-bold">{analytics?.total_bookings ?? "..."}</p>
         </Card>
         <Card>
           <p className="text-xs uppercase tracking-wide text-slate-500">Completed Bookings</p>
-          <p className="mt-2 text-2xl font-bold">{analytics.completed_bookings}</p>
+          <p className="mt-2 text-2xl font-bold">{analytics?.completed_bookings ?? "..."}</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Flagged Messages</p>
-          <p className="mt-2 text-2xl font-bold">{analytics.flagged_messages}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Cancelled Bookings</p>
+          <p className="mt-2 text-2xl font-bold">{analytics?.cancelled_bookings ?? "..."}</p>
         </Card>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -116,27 +83,17 @@ export function AdminDashboardPage() {
           <h3 className="mb-3 font-semibold">Revenue Overview</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
+              <BarChart data={analytics?.monthly_revenue ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
+                <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={3} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-        <Card>
-          <h3 className="mb-3 font-semibold">Payment Status Breakdown</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={statusData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#0ea5e9" />
+                <Tooltip
+                  formatter={(value) => {
+                    const numericValue = Number(value || 0);
+                    return [`₹${numericValue.toLocaleString("en-IN")}`, "Revenue"];
+                  }}
+                />
+                <Bar dataKey="revenue" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

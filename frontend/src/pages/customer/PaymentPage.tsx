@@ -336,7 +336,7 @@ export function PaymentPage() {
         setBooking(data as Booking);
       }
 
-      const orderResponse = await paymentService.createOrder({ booking_id: booking.id, amount: totalAmount });
+      const orderResponse = await paymentService.createOrder(booking.id);
       const orderId = orderResponse?.data?.order_id as string | undefined;
       const paymentKey = orderResponse?.data?.payment_key as string | undefined;
 

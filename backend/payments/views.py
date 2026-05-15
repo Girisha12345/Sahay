@@ -398,14 +398,27 @@ class ProviderWalletView(APIView):
 		tx_list = []
 		for tx in transactions:
 			booking = tx.booking
+			service_title = "—"
+			customer_name = "—"
+			payment_status = "—"
+			if booking:
+				if getattr(booking, "service", None):
+					service_title = booking.service.title
+				if getattr(booking, "customer", None):
+					customer_name = booking.customer.first_name or "Customer"
+				payment = getattr(booking, "payment", None)
+				if payment:
+					payment_status = payment.payment_status
+
 			tx_list.append({
 				"id": tx.id,
-				"service": booking.service.title if booking and booking.service else "-",
-				"customer": booking.customer.first_name if booking and booking.customer else "-",
+				"service": service_title,
+				"customer": customer_name,
 				"amount": float(tx.amount),
 				"date": tx.created_at.strftime("%b %d"),
-				"status": booking.payment.payment_status if booking and hasattr(booking, "payment") else "-",
+				"status": payment_status,
 				"tx_type": tx.tx_type,
+				"description": tx.description,
 			})
 
 		return Response({

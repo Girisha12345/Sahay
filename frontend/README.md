@@ -71,3 +71,23 @@ export default defineConfig([
   },
 ])
 ```
+
+## End-to-end tests (Cypress)
+
+Local:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+# in another terminal
+npx cypress open
+```
+
+CI:
+
+The GitHub Actions workflow runs `npx cypress run` after the frontend build. Ensure the dev server or an SSR preview is available when running tests in CI.
+
+Notes:
+- The included test `cypress/e2e/chat_booking.cy.js` is a smoke skeleton and requires seeded test accounts (`customer@example.com`).
+

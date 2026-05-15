@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
+import { BackButton } from "../../components/BackButton";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -188,12 +189,11 @@ export function BookingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={() => navigate("/services")}>
-          ← Back to Services
-        </Button>
-      </div>
+    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+      <BackButton 
+        fallback="/services"
+        label="← Back to Services"
+      />
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <div className="grid gap-6 lg:grid-cols-3">

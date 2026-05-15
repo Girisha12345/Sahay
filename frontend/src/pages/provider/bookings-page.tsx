@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { BackButton } from "../../components/BackButton";
 import { ProviderRequestCard } from "../../components/provider/ProviderRequestCard";
 import { ActiveJobCard } from "../../components/provider/ActiveJobCard";
 import { Button } from "../../components/ui/button";
@@ -125,7 +124,6 @@ export function ProviderBookingsPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton />
       
       <div>
         <h1 className="text-3xl font-bold text-slate-900">All Bookings</h1>

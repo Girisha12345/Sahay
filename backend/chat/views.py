@@ -63,3 +63,18 @@ class BookingChatHistoryView(generics.ListAPIView):
 	def get_queryset(self):
 		booking_id = self.kwargs.get("booking_id") or self.request.query_params.get("booking_id")
 		return Message.objects.filter(room__booking_id=booking_id).select_related("sender").order_by("created_at")
+
+
+class MarkMessagesReadView(APIView):
+	permission_classes = [IsChatParticipant]
+
+	def post(self, request, booking_id=None):
+		booking_id = booking_id or request.data.get("booking_id")
+		room = ChatRoom.objects.filter(booking_id=booking_id).first()
+		if not room:
+			return Response({"detail": "Chat room not found."}, status=404)
+
+		# mark unread messages not sent by requester as read
+		msgs = Message.objects.filter(room=room, is_read=False).exclude(sender=request.user)
+		msgs.update(is_read=True)
+		return Response({"updated": msgs.count()}, status=200)

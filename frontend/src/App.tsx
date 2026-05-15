@@ -202,7 +202,7 @@ function App() {
         <Route
           path="/payment/:bookingId"
           element={
-            <ProtectedRoute roles={["CUSTOMER"]}>
+            <ProtectedRoute>
               <PaymentPage />
             </ProtectedRoute>
           }
@@ -210,7 +210,7 @@ function App() {
         <Route
           path="/payment/success"
           element={
-            <ProtectedRoute roles={["CUSTOMER"]}>
+            <ProtectedRoute>
               <PaymentSuccessPage />
             </ProtectedRoute>
           }
@@ -218,7 +218,7 @@ function App() {
         <Route
           path="/checkout"
           element={
-            <ProtectedRoute roles={["CUSTOMER"]}>
+            <ProtectedRoute>
               <CheckoutPage />
             </ProtectedRoute>
           }
@@ -226,7 +226,7 @@ function App() {
         <Route
           path="/order-success/:bookingId"
           element={
-            <ProtectedRoute roles={["CUSTOMER"]}>
+            <ProtectedRoute>
               <OrderSuccessPage />
             </ProtectedRoute>
           }
@@ -274,6 +274,14 @@ function App() {
         />
         <Route
           path="/chat"
+          element={
+            <ProtectedRoute roles={["CUSTOMER"]}>
+              <ChatLauncherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/chat"
           element={
             <ProtectedRoute roles={["CUSTOMER"]}>
               <ChatLauncherPage />
@@ -356,6 +364,14 @@ function App() {
 export default App;
 
 function RoleDashboardRedirect() {
+      <Route
+        path="/provider/chat"
+        element={
+          <ProtectedRoute roles={["PROVIDER"]}>
+            <ProviderMessages />
+          </ProtectedRoute>
+        }
+      />
   const { user } = useAuthStore();
   if (user?.role === "PROVIDER") {
     const key = `provider_onboarding_done_${localStorage.getItem("accessToken") || "default"}`;

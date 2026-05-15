@@ -15,6 +15,8 @@ class NotificationListView(generics.ListCreateAPIView):
         return NotificationSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or getattr(self.request.user, "is_anonymous", True):
+            return Notification.objects.none()
         return Notification.objects.filter(user=self.request.user).order_by("-created_at")
 
     def perform_create(self, serializer):

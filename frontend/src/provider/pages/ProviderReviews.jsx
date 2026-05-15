@@ -3,8 +3,8 @@ import { Star } from "lucide-react";
 
 import { ProviderLayout } from "../components/ProviderLayout";
 import { Spinner } from "../../components/ui/spinner";
-import api from "../../services/api";
 import { providerServiceApi } from "../../services/providerServiceApi";
+import { reviewService } from "../../services/reviewService";
 import { useAuthStore } from "../../store/authStore";
 
 export function ProviderReviews() {
@@ -21,7 +21,7 @@ export function ProviderReviews() {
       return;
     }
 
-    Promise.all([api.get(`reviews/provider/${user.id}/`), providerServiceApi.getMyServices()])
+    Promise.all([reviewService.providerReviews(), providerServiceApi.getMyServices()])
       .then(([reviewResponse, serviceResponse]) => {
         setReviews(reviewResponse.data ?? []);
         setServices(serviceResponse.data ?? []);

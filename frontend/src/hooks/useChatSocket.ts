@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000";
+const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8001";
 
 interface ChatMessage {
   id: number;
@@ -11,11 +11,16 @@ interface ChatMessage {
   is_flagged?: boolean;
   type?: string;
   message?: string;
+  user_id?: string | number;
+  online?: boolean;
+  is_delivered?: boolean;
+  is_read?: boolean;
 }
 
 export function useChatSocket(bookingId: number | string | null, tokenOrUser: string | { id?: string } | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [blocked, setBlocked] = useState<string | null>(null);
+  const [presence, setPresence] = useState<Record<string, boolean>>({});
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -38,7 +43,34 @@ export function useChatSocket(bookingId: number | string | null, tokenOrUser: st
         setTimeout(() => setBlocked(null), 5000);
         return;
       }
-      setMessages((prev) => [...prev, data]);
+
+      if (data.type === "typing") {
+        // provider typing indicator
+        if (String(data.sender) !== String((tokenOrUser as any)?.id ?? localStorage.getItem("userId"))) {
+          // set a short-lived typing state (not persisted here)
+        }
+        return;
+      }
+
+      if (data.type === "read") {
+        // mark messages as read in local state
+        setMessages((prev) => prev.map((m) => ({ ...m, is_read: true })));
+        return;
+      }
+
+      if (data.type === "booking_update") {
+        // booking update arrived while in chat; ignore for messages
+        return;
+      }
+
+      if (data.type === "presence") {
+        // presence update for participant
+        setPresence((p) => ({ ...p, [String(data.user_id)]: Boolean(data.online) }));
+        return;
+      }
+
+      // normal message
+      setMessages((prev) => [...prev, { ...data, is_delivered: data.is_delivered ?? false, is_read: data.is_read ?? false }]);
     };
 
     return () => ws.close();
@@ -50,6 +82,20 @@ export function useChatSocket(bookingId: number | string | null, tokenOrUser: st
     }
   }, []);
 
+  const sendTyping = useCallback((isTyping: boolean) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "typing", is_typing: isTyping }));
+    }
+  }, []);
+
+  const markRead = useCallback(() => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "mark_read" }));
+    } else if (bookingId) {
+      fetch(`/api/chat/${bookingId}/mark-read/`, { method: "POST", headers: { "Content-Type": "application/json" } }).catch(() => {});
+    }
+  }, [bookingId]);
+
   // Backward-compatible fields for existing pages.
   return {
     messages: messages.map((item) => ({
@@ -60,6 +106,8 @@ export function useChatSocket(bookingId: number | string | null, tokenOrUser: st
       timestamp: item.created_at,
       blocked: Boolean(item.type === "error"),
       is_typing: false,
+      is_delivered: (item as any).is_delivered ?? false,
+      is_read: (item as any).is_read ?? false,
     })),
     sendMessage: async (content: string) => sendMessage(content),
     connected,
@@ -69,6 +117,8 @@ export function useChatSocket(bookingId: number | string | null, tokenOrUser: st
     isReconnecting: false,
     isProviderTyping: false,
     warning: blocked,
-    sendTyping: (_isTyping: boolean) => {},
+    sendTyping: (isTyping: boolean) => sendTyping(isTyping),
+    markRead,
+    presence,
   };
 }

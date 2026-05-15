@@ -10,8 +10,30 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ["id", "room", "sender", "sender_email", "content", "is_flagged", "created_at"]
-        read_only_fields = ["id", "sender", "is_flagged", "created_at", "sender_email"]
+        fields = [
+            "id",
+            "room",
+            "sender",
+            "sender_email",
+            "content",
+            "is_flagged",
+            "is_delivered",
+            "delivered_at",
+            "is_read",
+            "read_at",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "sender",
+            "is_flagged",
+            "created_at",
+            "sender_email",
+            "is_read",
+            "read_at",
+            "is_delivered",
+            "delivered_at",
+        ]
 
 
 class MaskedMessageSerializer(serializers.ModelSerializer):

@@ -156,7 +156,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'config.authentication.ActiveUserJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -187,6 +187,7 @@ SIMPLE_JWT = {
 }
 
 REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
+CHANNEL_LAYER_BACKEND = env('CHANNEL_LAYER_BACKEND', default='redis')
 
 CACHES = {
     'default': {
@@ -204,14 +205,22 @@ if CACHES['default']['BACKEND'] == 'django_redis.cache.RedisCache':
         'CLIENT_CLASS': 'django_redis.client.DefaultClient'
     }
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL],
+if CHANNEL_LAYER_BACKEND.lower() in {'memory', 'inmemory', 'local'}:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
         },
-    },
-}
+    }
+else:
+    # Prefer Redis when requested; this will be used in production deployments.
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
 
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')

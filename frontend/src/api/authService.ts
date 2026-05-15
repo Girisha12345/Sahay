@@ -45,6 +45,11 @@ export const authService = {
     clearTokens();
     return response;
   },
+  deactivateAccount: async (refresh?: string | null) => {
+    const response = await api.post("/auth/deactivate-account/", refresh ? { refresh } : {});
+    clearTokens();
+    return response;
+  },
   getProfile: () => api.get("/auth/profile/"),
   getProviderDashboard: () => api.get("/provider/dashboard"),
   updateProviderProfile: (payload: {

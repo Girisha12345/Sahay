@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Spinner } from "../components/ui/spinner";
+import { BackButton } from "../components/BackButton";
 import { StepIndicator } from "../components/checkout/StepIndicator";
 import { AddressForm } from "../components/checkout/AddressForm";
 import { AddressSelector } from "../components/checkout/AddressSelector";
@@ -221,15 +222,11 @@ export function CheckoutPage() {
       {/* Header */}
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="rounded-full p-2 hover:bg-slate-100"
-            >
-              <ChevronLeft className="h-5 w-5 text-slate-600" />
-            </button>
-            <h1 className="text-2xl font-bold text-slate-900">Checkout</h1>
-          </div>
+          <BackButton 
+            label="← Back to Service"
+            fallback="/services"
+          />
+          <h1 className="mt-3 text-2xl font-bold text-slate-900">Checkout</h1>
         </div>
       </div>
 

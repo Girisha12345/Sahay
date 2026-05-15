@@ -54,12 +54,22 @@ class CustomerBookingsView(generics.ListAPIView):
         return Booking.objects.filter(customer=self.request.user).select_related("provider", "service")
 
 
+class CustomerBookingListView(CustomerBookingsView):
+    """Compatibility wrapper for frontend naming: CustomerBookingListView"""
+    pass
+
+
 class ProviderBookingsView(generics.ListAPIView):
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Booking.objects.filter(provider=self.request.user).select_related("customer", "service")
+
+
+class ProviderBookingListView(ProviderBookingsView):
+    """Compatibility wrapper for frontend naming: ProviderBookingListView"""
+    pass
 
 
 class BookingListView(generics.ListAPIView):
@@ -74,6 +84,26 @@ class BookingListView(generics.ListAPIView):
         if user.role == User.Role.PROVIDER:
             return queryset.filter(provider=user).order_by("-created_at")
         return queryset.filter(customer=user).order_by("-created_at")
+
+
+class BookingDetailView(generics.RetrieveAPIView):
+    serializer_class = BookingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # allow admin to access all, providers to access their bookings, customers theirs
+        user = self.request.user
+        qs = Booking.objects.select_related("customer", "provider", "service").all()
+        if user.role == User.Role.ADMIN:
+            return qs
+        if user.role == User.Role.PROVIDER:
+            return qs.filter(provider=user)
+        return qs.filter(customer=user)
+
+
+class BookingDetailViewAlias(BookingDetailView):
+    """Alias to ensure import flexibility"""
+    pass
 
 
 class BookingUpdateStatusView(APIView):
@@ -122,6 +152,11 @@ class BookingUpdateStatusView(APIView):
         return Response(BookingSerializer(booking).data, status=status.HTTP_200_OK)
 
 
+class BookingStatusUpdateView(BookingUpdateStatusView):
+    """Compatibility wrapper named BookingStatusUpdateView"""
+    pass
+
+
 class BookingUpdatePaymentMethodView(APIView):
     def patch(self, request):
         booking_id = request.data.get("booking_id")
@@ -140,3 +175,8 @@ class BookingUpdatePaymentMethodView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(BookingSerializer(booking).data, status=status.HTTP_200_OK)
+
+
+class BookingPaymentMethodUpdateView(BookingUpdatePaymentMethodView):
+    """Compatibility wrapper named BookingPaymentMethodUpdateView"""
+    pass

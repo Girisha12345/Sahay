@@ -21,6 +21,9 @@ class SupportTicketListView(generics.ListAPIView):
 	serializer_class = SupportTicketSerializer
 
 	def get_queryset(self):
+		# guard anonymous and swagger fake views
+		if getattr(self, "swagger_fake_view", False) or getattr(self.request.user, "is_anonymous", True):
+			return SupportTicket.objects.none()
 		if self.request.user.role in [User.Role.SUPPORT_AGENT, User.Role.ADMIN]:
 			return SupportTicket.objects.all().order_by("-created_at")
 		return SupportTicket.objects.filter(user=self.request.user).order_by("-created_at")
@@ -30,6 +33,8 @@ class SupportTicketListCreateView(generics.ListCreateAPIView):
 	serializer_class = SupportTicketSerializer
 
 	def get_queryset(self):
+		if getattr(self, "swagger_fake_view", False) or getattr(self.request.user, "is_anonymous", True):
+			return SupportTicket.objects.none()
 		if self.request.user.role in [User.Role.SUPPORT_AGENT, User.Role.ADMIN]:
 			return SupportTicket.objects.all().order_by("-created_at")
 		return SupportTicket.objects.filter(user=self.request.user).order_by("-created_at")

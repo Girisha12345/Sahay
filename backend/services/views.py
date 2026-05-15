@@ -20,10 +20,8 @@ class PublicServiceListView(generics.ListAPIView):
 	search_fields = ["title", "description"]
 
 	def get_queryset(self):
-		qs = Service.objects.filter(
-			Q(provider__isnull=True) | Q(provider__is_verified_provider=True),
-			is_active=True,
-		).select_related("category", "provider")
+		# Show all services that are active (regardless of provider verification status)
+		qs = Service.objects.filter(is_active=True).select_related("category", "provider")
 
 		category = self.request.query_params.get("category")
 		if category:
@@ -38,10 +36,7 @@ class PublicServiceListView(generics.ListAPIView):
 class PublicServiceDetailView(generics.RetrieveAPIView):
 	serializer_class = PublicServiceSerializer
 	permission_classes = [permissions.AllowAny]
-	queryset = Service.objects.filter(
-		Q(provider__isnull=True) | Q(provider__is_verified_provider=True),
-		is_active=True,
-	).select_related("category", "provider")
+	queryset = Service.objects.filter(is_active=True).select_related("category", "provider")
 
 
 class ProviderMyServiceListCreateView(generics.ListCreateAPIView):
@@ -49,6 +44,8 @@ class ProviderMyServiceListCreateView(generics.ListCreateAPIView):
 	permission_classes = [permissions.IsAuthenticated, IsProviderRole]
 
 	def get_queryset(self):
+		if getattr(self, "swagger_fake_view", False) or getattr(self.request.user, "is_anonymous", True):
+			return Service.objects.none()
 		return Service.objects.filter(provider=self.request.user).select_related("category", "provider").order_by("-created_at")
 
 	def perform_create(self, serializer):
@@ -60,6 +57,8 @@ class ProviderMyServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
 	permission_classes = [permissions.IsAuthenticated, IsProviderRole]
 
 	def get_queryset(self):
+		if getattr(self, "swagger_fake_view", False) or getattr(self.request.user, "is_anonymous", True):
+			return Service.objects.none()
 		return Service.objects.filter(provider=self.request.user).select_related("category", "provider")
 
 

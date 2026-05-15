@@ -17,26 +17,40 @@ class RevenueAnalyticsView(APIView):
 	permission_classes = [IsAdminRole]
 
 	def get(self, request):
-		completed_payments = Payment.objects.filter(payment_status="RELEASED")
-		provider_earnings = completed_payments.aggregate(
-			total=Sum(ExpressionWrapper(F("amount") - F("commission"), output_field=DecimalField(max_digits=12, decimal_places=2)))
-		)["total"] or 0
-		totals = completed_payments.aggregate(
-			revenue=Sum("amount"),
-			commission=Sum("commission"),
-			provider_earnings=provider_earnings,
-		)
+		from django.db.models.functions import TruncMonth
+		from django.utils import timezone
+
+		# Total revenue from paid payments
+		total_revenue = Payment.objects.filter(payment_status=Payment.PaymentStatus.PAID).aggregate(total=Sum("amount"))["total"] or 0
+
+		total_bookings = Booking.objects.count()
 		completed_bookings = Booking.objects.filter(status=Booking.Status.COMPLETED).count()
-		by_status = Payment.objects.values("payment_status").annotate(total=Count("id"))
-		flagged_messages = FlaggedMessageLog.objects.count()
-		return Response(
-			{
-				"totals": totals,
-				"payment_status": by_status,
-				"completed_bookings": completed_bookings,
-				"flagged_messages": flagged_messages,
-			}
+		cancelled_bookings = Booking.objects.filter(status=Booking.Status.CANCELLED).count()
+		pending_bookings = Booking.objects.filter(status=Booking.Status.PENDING).count()
+
+		monthly_qs = (
+			Payment.objects.filter(payment_status=Payment.PaymentStatus.PAID)
+			.annotate(month=TruncMonth("created_at"))
+			.values("month")
+			.annotate(revenue=Sum("amount"))
+			.order_by("month")
 		)
+		monthly_revenue = [
+			{
+				"month": item["month"].strftime("%b %Y") if item["month"] else "",
+				"revenue": float(item["revenue"]),
+			}
+			for item in monthly_qs
+		]
+
+		return Response({
+			"total_revenue": float(total_revenue),
+			"total_bookings": total_bookings,
+			"completed_bookings": completed_bookings,
+			"cancelled_bookings": cancelled_bookings,
+			"pending_bookings": pending_bookings,
+			"monthly_revenue": monthly_revenue,
+		})
 
 
 class PendingProvidersView(APIView):

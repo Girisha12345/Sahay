@@ -6,7 +6,9 @@ from accounts.views import (
     LogoutView,
     ProfileView,
     ProfileUpdateView,
+    ProviderDeactivateAccountView,
     RegisterView,
+    ProviderAvailabilityView,
 )
 
 urlpatterns = [
@@ -22,4 +24,8 @@ urlpatterns = [
     path("profile/update/", ProfileUpdateView.as_view(), name="profile-update-slash"),
     path("change-password", ChangePasswordView.as_view(), name="change-password"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password-slash"),
+    path("deactivate-account", ProviderDeactivateAccountView.as_view(), name="deactivate-account"),
+    path("deactivate-account/", ProviderDeactivateAccountView.as_view(), name="deactivate-account-slash"),
+    path("provider/availability", ProviderAvailabilityView.as_view(), name="provider-availability-no-slash"),
+    path("provider/availability/", ProviderAvailabilityView.as_view(), name="provider-availability"),
 ]

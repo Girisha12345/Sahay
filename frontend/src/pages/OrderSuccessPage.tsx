@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Spinner } from "../components/ui/spinner";
+import { BackButton } from "../components/BackButton";
 import {
   CheckCircle2,
   Download,
@@ -135,7 +136,13 @@ export function OrderSuccessPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 to-slate-50">
-      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
+        {/* Back Button */}
+        <BackButton 
+          fallback="/bookings"
+          label="← Back to Bookings"
+        />
+
         {/* Success Header */}
         <div className="mb-8 text-center">
           <div className="mb-6 flex justify-center">

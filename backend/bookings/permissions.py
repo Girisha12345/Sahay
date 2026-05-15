@@ -7,4 +7,4 @@ class IsCustomerCreateOnly(BasePermission):
     def has_permission(self, request, view):
         if request.method != "POST":
             return True
-        return bool(request.user and request.user.is_authenticated and request.user.role == User.Role.CUSTOMER)
+        return bool(request.user and request.user.is_authenticated)

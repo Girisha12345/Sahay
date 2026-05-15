@@ -10,6 +10,6 @@ urlpatterns = [
     *router.urls,
     path("create", ReviewCreateView.as_view(), name="review-create"),
     path("create/", ReviewCreateView.as_view(), name="review-create-slash"),
-    path("provider/<uuid:id>", ProviderReviewListView.as_view(), name="provider-reviews"),
-    path("provider/<uuid:id>/", ProviderReviewListView.as_view(), name="provider-reviews-slash"),
+    path("provider/", ProviderReviewListView.as_view(), name="provider-reviews"),
+    path("provider", ProviderReviewListView.as_view(), name="provider-reviews-no-slash"),
 ]

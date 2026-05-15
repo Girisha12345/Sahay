@@ -45,6 +45,7 @@ export function ServiceCard({ service, onBook }: { service: ServiceItem; onBook:
       </div>
       <div className="mt-4 flex gap-2">
         <Button
+          type="button"
           variant="secondary"
           className="flex-1"
           onClick={() => navigate(`/services/${service.id}`)}
@@ -52,14 +53,16 @@ export function ServiceCard({ service, onBook }: { service: ServiceItem; onBook:
           View Details & Rate
         </Button>
         <Button
+          type="button"
           className="flex-1"
           onClick={() => {
-            if (user) {
-              onBook(service.id);
-            } else {
+            if (!user) {
               const nextPath = encodeURIComponent(`/checkout?serviceId=${service.id}`);
               navigate(`/login?next=${nextPath}`);
+              return;
             }
+
+            onBook(service.id);
           }}
         >
           Book Now

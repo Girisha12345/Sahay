@@ -83,26 +83,21 @@ class ReviewCreateView(generics.CreateAPIView):
 	permission_classes = [IsAuthenticated]
 
 	def perform_create(self, serializer):
-		booking = serializer.validated_data["booking"]
-		if booking.customer_id != self.request.user.id:
+		booking = serializer.validated_data.get("booking")
+		service = serializer.validated_data.get("service")
+		if booking and booking.customer_id != self.request.user.id:
 			raise PermissionDenied("Only booking customer can review.")
-		if booking.status != Booking.Status.COMPLETED:
+		if booking and booking.status != Booking.Status.COMPLETED:
 			raise ValidationError("Review allowed only for completed bookings.")
-		service = booking.service
-		review = Review.objects.filter(user=self.request.user, service=service).first()
-		if review:
-			review.rating = serializer.validated_data["rating"]
-			review.comment = serializer.validated_data.get("comment", "")
-			review.booking = booking
-			review.save()
-			return
-		serializer.save(user=self.request.user, service=service)
+		if booking and not service:
+			service = booking.service
+		serializer.save(customer=self.request.user, service=service)
 
 
 class ProviderReviewListView(generics.ListAPIView):
 	serializer_class = ReviewSerializer
-	permission_classes = [AllowAny]
+	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		provider_id = self.kwargs["id"]
-		return Review.objects.filter(booking__provider_id=provider_id).select_related("booking", "service", "user")
+		# Return reviews for bookings where the provider is the logged in user
+		return Review.objects.filter(booking__provider=self.request.user).select_related("booking", "service", "customer").order_by("-created_at")

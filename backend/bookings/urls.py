@@ -2,20 +2,23 @@ from django.urls import path
 
 from bookings.views import (
     BookingCreateView,
+    CustomerBookingListView,
+    ProviderBookingListView,
+    BookingStatusUpdateView,
+    BookingPaymentMethodUpdateView,
+    BookingDetailView,
     BookingListView,
-    BookingUpdatePaymentMethodView,
-    BookingUpdateStatusView,
-    CustomerBookingsView,
-    ProviderBookingsView,
 )
 
 urlpatterns = [
     path("", BookingListView.as_view(), name="booking-list"),
     path("create/", BookingCreateView.as_view(), name="booking-create"),
-    path("customer", CustomerBookingsView.as_view(), name="booking-customer-list-no-slash"),
-    path("customer/", CustomerBookingsView.as_view(), name="booking-customer-list"),
-    path("provider", ProviderBookingsView.as_view(), name="booking-provider-list-no-slash"),
-    path("provider/", ProviderBookingsView.as_view(), name="booking-provider-list"),
-    path("update-status/", BookingUpdateStatusView.as_view(), name="booking-update-status"),
-    path("update-payment-method/", BookingUpdatePaymentMethodView.as_view(), name="booking-update-payment-method"),
+    path("customer", CustomerBookingListView.as_view(), name="customer-bookings-no-slash"),
+    path("customer/", CustomerBookingListView.as_view(), name="customer-bookings"),
+    path("provider", ProviderBookingListView.as_view(), name="provider-bookings-no-slash"),
+    path("provider/", ProviderBookingListView.as_view(), name="provider-bookings"),
+    path("<int:pk>", BookingDetailView.as_view(), name="booking-detail-no-slash"),
+    path("<int:pk>/", BookingDetailView.as_view(), name="booking-detail"),
+    path("update-status/", BookingStatusUpdateView.as_view(), name="booking-update-status"),
+    path("update-payment-method/", BookingPaymentMethodUpdateView.as_view(), name="booking-update-payment"),
 ]

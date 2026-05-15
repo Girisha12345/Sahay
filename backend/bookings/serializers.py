@@ -11,6 +11,11 @@ from services.models import Service
 class BookingSerializer(serializers.ModelSerializer):
     customer_info = serializers.SerializerMethodField()
     provider_info = serializers.SerializerMethodField()
+    provider_name = serializers.SerializerMethodField()
+    service_title = serializers.SerializerMethodField()
+    has_review = serializers.SerializerMethodField()
+    review_rating = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
 
     def _serialize_user(self, user, booking):
         if booking.status in [
@@ -26,26 +31,66 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_provider_info(self, obj):
         return self._serialize_user(obj.provider, obj)
 
+    def get_provider_name(self, obj):
+        provider = getattr(obj, "provider", None)
+        if not provider:
+            return ""
+        return f"{provider.first_name or ''} {provider.last_name or ''}".strip()
+
+    def get_service_title(self, obj):
+        return getattr(obj.service, "title", "")
+
+    def get_has_review(self, obj):
+        return hasattr(obj, "review") and obj.review is not None
+
+    def get_review_rating(self, obj):
+        if hasattr(obj, "review") and obj.review is not None:
+            return getattr(obj.review, "rating", None)
+        return None
+
+    def get_payment_status(self, obj):
+        try:
+            return obj.payment.payment_status
+        except Exception:
+            return None
+
     class Meta:
         model = Booking
         fields = [
             "id",
+            "customer",
+            "provider",
             "customer_info",
             "provider_info",
+            "provider_name",
             "service",
+            "service_title",
             "status",
             "scheduled_date",
             "scheduled_time",
             "total_price",
             "commission_amount",
             "final_provider_amount",
+            "payment_method",
+            "payment_status",
+            "address",
+            "address_line",
+            "locality",
+            "pincode",
+            "notes",
+            "has_review",
+            "review_rating",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
-            "status",
             "commission_amount",
             "final_provider_amount",
+            "customer_info",
+            "provider_info",
+            "has_review",
+            "review_rating",
+            "payment_status",
             "created_at",
             "updated_at",
         ]

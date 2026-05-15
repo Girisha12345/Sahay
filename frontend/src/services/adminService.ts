@@ -1,18 +1,13 @@
 import { api } from "./api";
 
-export type AdminRevenueAnalytics = {
-  totals: {
-    revenue: number | string | null;
-    commission: number | string | null;
-    provider_earnings: number | string | null;
-  };
-  payment_status: Array<{
-    payment_status: string;
-    total: number;
-  }>;
+export interface AdminRevenueAnalytics {
+  total_revenue: number;
+  total_bookings: number;
   completed_bookings: number;
-  flagged_messages: number;
-};
+  cancelled_bookings: number;
+  pending_bookings: number;
+  monthly_revenue: Array<{ month: string; revenue: number }>;
+}
 
 export type PendingProvider = {
   id: number;
@@ -43,8 +38,23 @@ export type FlaggedChatRecord = {
 
 export const adminService = {
   getRevenueAnalytics: () => api.get<AdminRevenueAnalytics>("admin/revenue/"),
-  getPendingProviders: () => api.get<PendingProvider[]>("admin/providers/pending/"),
-  approveProvider: (providerId: number) => api.patch("admin/providers/approve/", { provider_id: providerId }),
-  rejectProvider: (providerId: number) => api.patch("admin/providers/reject/", { provider_id: providerId }),
-  getFlaggedChats: () => api.get<FlaggedChatRecord[]>("admin/flagged-chats/"),
+
+  getPendingProviders: () => api.get("admin/providers/pending"),
+
+  approveProvider: (providerId: string | number) =>
+    api.patch("admin/providers/approve", { provider_id: providerId }),
+
+  rejectProvider: (providerId: string | number) =>
+    api.patch("admin/providers/reject/", { provider_id: providerId }),
+
+  getFlaggedChats: () => api.get("admin/flagged-chats"),
+
+  getCategories: () => api.get("categories/"),
+
+  createCategory: (name: string) => api.post("categories/", { name, is_active: true }),
+
+  updateCategory: (id: number, data: { name?: string; is_active?: boolean }) =>
+    api.patch(`categories/${id}/`, data),
+
+  deleteCategory: (id: number) => api.delete(`categories/${id}/`),
 };

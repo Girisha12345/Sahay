@@ -40,15 +40,16 @@ export function LoginPage() {
 
       const currentUser = useAuthStore.getState().user;
       const nextPath = searchParams.get("next");
+
+      if (nextPath) {
+        navigate(nextPath, { replace: true });
+        return;
+      }
+
       if (currentUser?.role === "PROVIDER") {
         const key = `provider_onboarding_done_${localStorage.getItem("accessToken") || "default"}`;
         const completed = localStorage.getItem(key) === "true";
         navigate(completed ? "/provider/dashboard" : "/provider/onboarding", { replace: true });
-        return;
-      }
-
-      if (currentUser?.role === "CUSTOMER" && nextPath) {
-        navigate(nextPath, { replace: true });
         return;
       }
 

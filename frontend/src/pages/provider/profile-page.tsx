@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { BackButton } from "../../components/BackButton";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { authService } from "../../services/authService";
@@ -50,7 +49,6 @@ export function ProviderProfilePage() {
 
   return (
     <div>
-      <BackButton />
       <Card className="max-w-2xl">
         <h1 className="text-2xl font-bold">Provider Profile</h1>
       <p className="mt-2 text-sm text-slate-500">Update skills, experience and hourly rate from this page.</p>

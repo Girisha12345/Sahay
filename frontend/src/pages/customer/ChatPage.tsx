@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { useParams } from "react-router-dom";
 
+import { BackButton } from "../../components/BackButton";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -117,7 +118,11 @@ export function ChatPage() {
   }, [isConnected, isConnecting, isReconnecting]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-5xl space-y-3">
+      <BackButton 
+        fallback={`/bookings/${parsedBookingId}`}
+        label="← Back to Booking"
+      />
       <Card className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="border-b border-slate-200 pb-4">
           {headerLoading ? (
@@ -181,9 +186,14 @@ export function ChatPage() {
                     }`}
                   >
                     <p className="text-sm leading-5">{item.message_text}</p>
-                    <p className={`mt-1 text-[11px] ${isCustomerMessage ? "text-sky-100" : "text-slate-400"}`}>
-                      {formatTime(item.timestamp)}
-                    </p>
+                    <div className="mt-1 flex items-center gap-2 text-[11px]">
+                      <span className={`${isCustomerMessage ? "text-sky-100" : "text-slate-400"}`}>{formatTime(item.timestamp)}</span>
+                      {isCustomerMessage && (
+                        <span className="text-[11px] text-sky-100">
+                          {item.is_read ? "✓✓" : item.is_delivered ? "✓" : "…"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

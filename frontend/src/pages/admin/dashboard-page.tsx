@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -38,9 +39,16 @@ import {
   Check,
   Ban,
   Loader2,
+  FolderTree,
+  Eye,
+  ExternalLink,
+  CreditCard,
+  Layers,
 } from "lucide-react";
 
 import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Spinner } from "../../components/ui/spinner";
 import {
   adminService,
   type DashboardStats,
@@ -54,8 +62,24 @@ import {
   type FlaggedChatRecord,
 } from "../../services/adminService";
 import { notificationService } from "../../services/notificationService";
+import { paymentService } from "../../services/paymentService";
 
 const COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+export type PaymentProof = {
+  id: number;
+  booking: number;
+  customer: number;
+  customer_email: string;
+  booking_service_title: string;
+  booking_customer_name: string;
+  amount_expected: string;
+  amount_paid: string;
+  utr_number: string;
+  screenshot: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "UNDERPAID" | "OVERPAID";
+  created_at: string;
+};
 
 export function AdminDashboardPage() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -77,11 +101,16 @@ export function AdminDashboardPage() {
   const [chatData, setChatData] = useState<ChatAnalyticsRecord[]>([]);
   const [serviceData, setServiceData] = useState<ServiceCategoryAnalyticsRecord[]>([]);
   const [flaggedChats, setFlaggedChats] = useState<FlaggedChatRecord[]>([]);
+  const [proofs, setProofs] = useState<PaymentProof[]>([]);
 
   // UI state
   const [loading, setLoading] = useState(true);
   const [revenueInterval, setRevenueInterval] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
   const [bookingInterval, setBookingInterval] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [verifyingProofId, setVerifyingProofId] = useState<number | null>(null);
+
+  // Modal State for Image View
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Notifications
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; type: string; time: string }>>([]);
@@ -119,6 +148,7 @@ export function AdminDashboardPage() {
         chatRes,
         srvRes,
         flaggedRes,
+        proofsRes,
       ] = await Promise.all([
         adminService.getDashboardStats(params),
         adminService.getRevenueAnalyticsData(params),
@@ -129,6 +159,7 @@ export function AdminDashboardPage() {
         adminService.getChatAnalytics(params),
         adminService.getServiceAnalytics(params),
         adminService.getFlaggedChats(),
+        paymentService.listProofs(),
       ]);
 
       setStats(statsRes.data);
@@ -140,6 +171,7 @@ export function AdminDashboardPage() {
       setChatData(chatRes.data);
       setServiceData(srvRes.data);
       setFlaggedChats(flaggedRes.data.filter(chat => chat.status !== "RESOLVED" && chat.status !== "DISMISSED"));
+      setProofs((proofsRes.data as PaymentProof[]).filter(p => ["PENDING", "UNDERPAID", "OVERPAID"].includes(p.status)));
     } catch (error) {
       console.error("Error loading admin dashboard analytics:", error);
     } finally {
@@ -180,7 +212,7 @@ export function AdminDashboardPage() {
             setNotifications((prev) => [newNotif, ...prev]);
             setUnreadCount((c) => c + 1);
 
-            // Dynamically refresh statistics to reflect real-time update
+            // Refresh data
             void loadDashboardData();
           }
         } catch (err) {
@@ -214,7 +246,7 @@ export function AdminDashboardPage() {
     try {
       await adminService.resolveFlaggedChat(id, action);
       setFlaggedChats((prev) => prev.filter((chat) => chat.id !== id));
-      // Reload chat stats trend
+      
       const params: Record<string, string> = { range: dateRange };
       if (dateRange === "custom") {
         if (startDate) params.start_date = startDate;
@@ -224,6 +256,19 @@ export function AdminDashboardPage() {
       setChatData(chatRes.data);
     } catch (error) {
       console.error("Error resolving flagged chat:", error);
+    }
+  };
+
+  const handleVerifyProof = async (proofId: number, status: "APPROVED" | "REJECTED") => {
+    setVerifyingProofId(proofId);
+    try {
+      await paymentService.verifyProof(proofId, status);
+      setProofs((prev) => prev.filter((p) => p.id !== proofId));
+      void loadDashboardData();
+    } catch (error) {
+      console.error("Error verifying payment proof:", error);
+    } finally {
+      setVerifyingProofId(null);
     }
   };
 
@@ -237,13 +282,11 @@ export function AdminDashboardPage() {
     window.open(url, "_blank");
   };
 
-  // Safe KPI helper
   const renderKpi = (value: number | undefined, isCurrency = false) => {
     if (value === undefined) return "...";
     return isCurrency ? `₹${value.toLocaleString("en-IN")}` : value.toLocaleString("en-IN");
   };
 
-  // Skeletons
   if (loading && !stats) {
     return (
       <div className="flex min-h-[80vh] items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors">
@@ -255,7 +298,6 @@ export function AdminDashboardPage() {
     );
   }
 
-  // Get active trend data based on user selection
   const revenueTrendData = (() => {
     if (!revenueData) return [];
     if (revenueInterval === "daily") return revenueData.daily_trend;
@@ -484,6 +526,61 @@ export function AdminDashboardPage() {
               </Card>
             );
           })}
+        </div>
+
+        {/* Shortcuts Panel Section */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Link
+            to="/admin/categories"
+            className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 transition hover:border-sky-500 hover:bg-sky-50/10 dark:hover:bg-sky-950/20 shadow-sm"
+          >
+            <div className="rounded-xl bg-sky-50 dark:bg-sky-950 p-2 text-sky-600 dark:text-sky-400">
+              <FolderTree className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Categories</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Manage Service Taxonomy</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/providers"
+            className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 transition hover:border-emerald-500 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/20 shadow-sm"
+          >
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 p-2 text-emerald-600 dark:text-emerald-400">
+              <UserCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Verify Partners</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Approve Pending Providers</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/flagged-chats"
+            className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 transition hover:border-rose-500 hover:bg-rose-50/10 dark:hover:bg-rose-950/20 shadow-sm"
+          >
+            <div className="rounded-xl bg-rose-50 dark:bg-rose-950 p-2 text-rose-600 dark:text-rose-400">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Flagged Chats</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Moderate In-app Messages</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/payments"
+            className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 transition hover:border-amber-500 hover:bg-amber-50/10 dark:hover:bg-amber-950/20 shadow-sm"
+          >
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-950 p-2 text-amber-600 dark:text-amber-400">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Verify Payments</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Accept/Reject UPI Receipts</p>
+            </div>
+          </Link>
         </div>
 
         {/* Row 1: Revenue Analytics */}
@@ -898,13 +995,13 @@ export function AdminDashboardPage() {
                       <td className="py-2.5 text-right flex justify-end gap-1.5 mt-0.5">
                         <button
                           onClick={() => handleResolveChat(chat.id, "resolve")}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-400 dark:hover:text-white transition duration-150 font-bold"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer"
                         >
                           <Check className="h-3 w-3" /> Resolve
                         </button>
                         <button
                           onClick={() => handleResolveChat(chat.id, "dismiss")}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-700 dark:text-rose-400 dark:hover:text-white transition duration-150 font-bold"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-700 dark:text-rose-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer"
                         >
                           <Ban className="h-3 w-3" /> Dismiss
                         </button>
@@ -922,7 +1019,108 @@ export function AdminDashboardPage() {
           </Card>
         </div>
 
-        {/* Row 6: Service popularity & Downloads Reports */}
+        {/* Row 6: Pending Manual UPI Payments Verification (Accept / Reject) */}
+        <div className="grid grid-cols-1 gap-6 mb-6">
+          <Card className="backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 p-5 rounded-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-bold">Manual UPI Payments Verification</h3>
+                <p className="text-xs text-slate-500">Review pending manual receipt uploads and approve or reject transactions</p>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+                {proofs.length} Awaiting Verification
+              </span>
+            </div>
+
+            <div className="overflow-x-auto max-h-72">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                    <th className="pb-2 font-semibold">Booking ID</th>
+                    <th className="pb-2 font-semibold">Customer</th>
+                    <th className="pb-2 font-semibold">Amount Expected</th>
+                    <th className="pb-2 font-semibold">Amount Paid</th>
+                    <th className="pb-2 font-semibold">Difference</th>
+                    <th className="pb-2 font-semibold">UTR ID</th>
+                    <th className="pb-2 font-semibold">Screenshot</th>
+                    <th className="pb-2 font-semibold">Status</th>
+                    <th className="pb-2 font-semibold text-right">Verification Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  {proofs.map((proof) => (
+                    <tr key={proof.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/20 transition duration-150">
+                      <td className="py-2.5 font-bold">#{proof.booking}</td>
+                      <td className="py-2.5">
+                        <div className="font-semibold text-slate-850 dark:text-white">{proof.booking_customer_name}</div>
+                        <div className="text-[10px] text-slate-400">{proof.customer_email}</div>
+                      </td>
+                      <td className="py-2.5 font-bold">₹{Number(proof.amount_expected).toLocaleString("en-IN")}</td>
+                      <td className="py-2.5 font-black text-emerald-600 dark:text-emerald-450">₹{Number(proof.amount_paid).toLocaleString("en-IN")}</td>
+                      <td className="py-2.5">
+                        {(() => {
+                          const diff = Number(proof.amount_paid) - Number(proof.amount_expected);
+                          return (
+                            <span className={`font-bold ${diff < 0 ? "text-rose-500" : diff > 0 ? "text-indigo-500" : "text-slate-400"}`}>
+                              {diff > 0 ? "+" : ""}{diff.toLocaleString("en-IN")}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="py-2.5 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit">{proof.utr_number}</td>
+                      <td className="py-2.5">
+                        {proof.screenshot ? (
+                          <button
+                            onClick={() => setSelectedImage(proof.screenshot)}
+                            className="flex items-center gap-1 font-bold text-sky-500 hover:text-sky-600 cursor-pointer"
+                          >
+                            <Eye className="h-3 w-3" /> View Image
+                          </button>
+                        ) : (
+                          <span className="text-slate-400">None</span>
+                        )}
+                      </td>
+                      <td className="py-2.5">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                          proof.status === "UNDERPAID"
+                            ? "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400"
+                            : proof.status === "OVERPAID"
+                            ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400"
+                            : "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400"
+                        }`}>
+                          {proof.status}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right flex justify-end gap-1.5 mt-0.5">
+                        <button
+                          disabled={verifyingProofId !== null}
+                          onClick={() => handleVerifyProof(proof.id, "APPROVED")}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer disabled:opacity-50"
+                        >
+                          {verifyingProofId === proof.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Approve
+                        </button>
+                        <button
+                          disabled={verifyingProofId !== null}
+                          onClick={() => handleVerifyProof(proof.id, "REJECTED")}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-700 dark:text-rose-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer disabled:opacity-50"
+                        >
+                          <XCircle className="h-3 w-3" /> Reject
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {proofs.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400">All payment proof submissions verified!</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+
+        {/* Row 7: Service popularity & Downloads Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Services Category popularity Bar Chart */}
@@ -1009,6 +1207,39 @@ export function AdminDashboardPage() {
         </div>
 
       </div>
+
+      {/* Lightbox / Image Modal */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 transition-opacity">
+          <div className="relative max-w-4xl bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl p-4 flex flex-col items-center">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-3 right-3 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 p-2 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+            <div className="max-h-[70vh] max-w-full overflow-auto mt-6 flex justify-center">
+              <img
+                src={selectedImage}
+                alt="Payment Receipt UTR Screenshot"
+                className="max-h-[65vh] object-contain rounded-lg border dark:border-slate-800 shadow-inner"
+              />
+            </div>
+            <div className="mt-4 flex gap-4 w-full justify-between items-center border-t dark:border-slate-800 pt-3">
+              <span className="text-xs text-slate-400">Payment Screenshot Verification Link</span>
+              <a
+                href={selectedImage}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-500 hover:text-sky-600 hover:underline"
+              >
+                Open in new tab
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

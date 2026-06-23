@@ -101,7 +101,8 @@ export function AdminDashboardPage() {
   const [chatData, setChatData] = useState<ChatAnalyticsRecord[]>([]);
   const [serviceData, setServiceData] = useState<ServiceCategoryAnalyticsRecord[]>([]);
   const [flaggedChats, setFlaggedChats] = useState<FlaggedChatRecord[]>([]);
-  const [proofs, setProofs] = useState<PaymentProof[]>([]);
+  const [allProofs, setAllProofs] = useState<PaymentProof[]>([]);
+  const [proofFilter, setProofFilter] = useState<"awaiting" | "all">("awaiting");
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -171,7 +172,7 @@ export function AdminDashboardPage() {
       setChatData(chatRes.data);
       setServiceData(srvRes.data);
       setFlaggedChats(flaggedRes.data.filter(chat => chat.status !== "RESOLVED" && chat.status !== "DISMISSED"));
-      setProofs((proofsRes.data as PaymentProof[]).filter(p => ["PENDING", "UNDERPAID", "OVERPAID"].includes(p.status)));
+      setAllProofs(proofsRes.data as PaymentProof[]);
     } catch (error) {
       console.error("Error loading admin dashboard analytics:", error);
     } finally {
@@ -263,7 +264,9 @@ export function AdminDashboardPage() {
     setVerifyingProofId(proofId);
     try {
       await paymentService.verifyProof(proofId, status);
-      setProofs((prev) => prev.filter((p) => p.id !== proofId));
+      setAllProofs((prev) =>
+        prev.map((p) => (p.id === proofId ? { ...p, status } : p))
+      );
       void loadDashboardData();
     } catch (error) {
       console.error("Error verifying payment proof:", error);
@@ -312,6 +315,10 @@ export function AdminDashboardPage() {
     if (bookingInterval === "monthly") return bookingData.monthly_trend;
     return bookingData.daily_trend;
   })();
+
+  const displayedProofs = proofFilter === "awaiting"
+    ? allProofs.filter(p => ["PENDING", "UNDERPAID", "OVERPAID"].includes(p.status))
+    : allProofs;
 
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
@@ -1022,14 +1029,35 @@ export function AdminDashboardPage() {
         {/* Row 6: Pending Manual UPI Payments Verification (Accept / Reject) */}
         <div className="grid grid-cols-1 gap-6 mb-6">
           <Card className="backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 p-5 rounded-2xl">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-lg font-bold">Manual UPI Payments Verification</h3>
                 <p className="text-xs text-slate-500">Review pending manual receipt uploads and approve or reject transactions</p>
               </div>
-              <span className="px-2.5 py-1 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 text-xs font-semibold">
-                {proofs.length} Awaiting Verification
-              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+                  <button
+                    onClick={() => setProofFilter("awaiting")}
+                    className={`px-3 py-1 rounded text-xs font-semibold capitalize transition ${
+                      proofFilter === "awaiting"
+                        ? "bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                    }`}
+                  >
+                    Awaiting ({allProofs.filter(p => ["PENDING", "UNDERPAID", "OVERPAID"].includes(p.status)).length})
+                  </button>
+                  <button
+                    onClick={() => setProofFilter("all")}
+                    className={`px-3 py-1 rounded text-xs font-semibold capitalize transition ${
+                      proofFilter === "all"
+                        ? "bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                    }`}
+                  >
+                    All ({allProofs.length})
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="overflow-x-auto max-h-72">
@@ -1048,7 +1076,7 @@ export function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                  {proofs.map((proof) => (
+                  {displayedProofs.map((proof) => (
                     <tr key={proof.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/20 transition duration-150">
                       <td className="py-2.5 font-bold">#{proof.booking}</td>
                       <td className="py-2.5">
@@ -1086,32 +1114,51 @@ export function AdminDashboardPage() {
                             ? "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400"
                             : proof.status === "OVERPAID"
                             ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400"
+                            : proof.status === "APPROVED"
+                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-450"
+                            : proof.status === "REJECTED"
+                            ? "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-455"
                             : "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400"
                         }`}>
                           {proof.status}
                         </span>
                       </td>
                       <td className="py-2.5 text-right flex justify-end gap-1.5 mt-0.5">
-                        <button
-                          disabled={verifyingProofId !== null}
-                          onClick={() => handleVerifyProof(proof.id, "APPROVED")}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer disabled:opacity-50"
-                        >
-                          {verifyingProofId === proof.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Approve
-                        </button>
-                        <button
-                          disabled={verifyingProofId !== null}
-                          onClick={() => handleVerifyProof(proof.id, "REJECTED")}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-700 dark:text-rose-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer disabled:opacity-50"
-                        >
-                          <XCircle className="h-3 w-3" /> Reject
-                        </button>
+                        {["PENDING", "UNDERPAID", "OVERPAID"].includes(proof.status) ? (
+                          <>
+                            <button
+                              disabled={verifyingProofId !== null}
+                              onClick={() => handleVerifyProof(proof.id, "APPROVED")}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer disabled:opacity-50"
+                            >
+                              {verifyingProofId === proof.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Approve
+                            </button>
+                            <button
+                              disabled={verifyingProofId !== null}
+                              onClick={() => handleVerifyProof(proof.id, "REJECTED")}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-700 dark:text-rose-400 dark:hover:text-white transition duration-150 font-bold cursor-pointer disabled:opacity-50"
+                            >
+                              <XCircle className="h-3 w-3" /> Reject
+                            </button>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold">
+                            {proof.status === "APPROVED" ? (
+                              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <XCircle className="h-3 w-3 text-rose-500" />
+                            )}{" "}
+                            {proof.status}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
-                  {proofs.length === 0 && (
+                  {displayedProofs.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-400">All payment proof submissions verified!</td>
+                      <td colSpan={9} className="py-8 text-center text-slate-400">
+                        {proofFilter === "awaiting" ? "All payment proof submissions verified!" : "No payment proof submissions found."}
+                      </td>
                     </tr>
                   )}
                 </tbody>

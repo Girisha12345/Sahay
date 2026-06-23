@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader, Calendar, Heart, TrendingUp, MapPin, Star, Download, ArrowRight } from "lucide-react";
-import type { ServiceItem } from "../../types";
+import type { ServiceItem, PaymentHistoryItem } from "../../types";
 
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -40,17 +40,23 @@ export function CustomerDashboard() {
     const loadPayments = async () => {
       try {
         const { data } = await paymentService.history();
-        const paidPayments = (data as Array<{ amount?: string; payment_status?: string }>).filter(
-          (p) => p.payment_status === "PAID" || p.payment_status === "RELEASED",
+        const paymentsList = (Array.isArray(data) ? data : (data && Array.isArray((data as any).results) ? (data as any).results : [])) as PaymentHistoryItem[];
+        const paidPayments = paymentsList.filter(
+          (p: PaymentHistoryItem) => p.payment_status === "PAID" || p.payment_status === "RELEASED",
         );
-        const total = paidPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-        setTotalSpent(total.toFixed(2));
-        setPaymentsCount(paidPayments.length);
+        if (paidPayments.length > 0) {
+          const total = paidPayments.reduce((sum: number, p: PaymentHistoryItem) => sum + Number(p.amount || 0), 0);
+          setTotalSpent(total.toFixed(2));
+          setPaymentsCount(paidPayments.length);
+        } else {
+          const completed = bookings.filter((b) => b.status === "COMPLETED");
+          const total = completed.reduce((sum: number, b) => sum + Number(b.total_price || 0), 0);
+          setTotalSpent(total.toFixed(2));
+          setPaymentsCount(completed.length);
+        }
       } catch {
-        const completed = bookings.filter(
-          (b) => b.status === "COMPLETED" && (b.payment_status === "PAID" || b.payment_status === "RELEASED"),
-        );
-        const total = completed.reduce((sum, b) => sum + Number(b.total_price || 0), 0);
+        const completed = bookings.filter((b) => b.status === "COMPLETED");
+        const total = completed.reduce((sum: number, b: any) => sum + Number(b.total_price || 0), 0);
         setTotalSpent(total.toFixed(2));
         setPaymentsCount(completed.length);
       }
@@ -107,7 +113,7 @@ export function CustomerDashboard() {
     <div className="space-y-6">
       {/* Hero Section - Shopping Focus */}
       <div className="rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-8 text-white shadow-lg">
-        <div className="flex items-start justify-between gap-6">
+        <div className="flex flex-col md:flex-row items-stretch md:items-start justify-between gap-6">
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100">Service Bookings</p>
             <h1 className="text-3xl font-bold mt-2">Hi {displayName}! 👋</h1>
@@ -116,7 +122,7 @@ export function CustomerDashboard() {
             </p>
 
             {/* Quick Action Buttons */}
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-wrap gap-3 mt-6">
               <Button
                 onClick={() => navigate("/categories")}
                 className="bg-white text-emerald-600 hover:bg-emerald-50 font-semibold"
@@ -134,7 +140,7 @@ export function CustomerDashboard() {
           </div>
 
           {/* Stats Sidebar */}
-          <div className="flex-shrink-0 space-y-3">
+          <div className="flex-shrink-0 grid grid-cols-3 md:flex md:flex-col gap-3 w-full md:w-auto">
             <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 p-4">
               <p className="text-xs text-emerald-100">Upcoming</p>
               <p className="text-3xl font-bold text-white">{upcomingBookings.length}</p>

@@ -3,14 +3,14 @@ describe('Chat and booking flow', () => {
     // This is a smoke test skeleton — requires test accounts and seeded data.
     cy.visit('/')
 
-    // Try login (assumes a test account exists)
+    // Try login
     cy.contains('Login').click()
-    cy.get('input[name="email"]').type('customer@example.com')
-    cy.get('input[name="password"]').type('password')
+    cy.get('input[name="email"]').type('testcust@example.com')
+    cy.get('input[name="password"]').type('Password123!')
     cy.get('button[type="submit"]').click()
 
     // Wait for dashboard
-    cy.url().should('include', '/customer')
+    cy.url().should('include', '/customer/dashboard')
 
     // Open bookings
     cy.visit('/customer/bookings')

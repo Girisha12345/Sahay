@@ -57,7 +57,7 @@ export interface Booking {
   provider_name?: string;
   provider_email?: string;
   service: number;
-  status: "PENDING_PAYMENT" | "PENDING" | "CONFIRMED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "DISPUTED";
+  status: "PENDING_PAYMENT" | "PENDING" | "CONFIRMED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "DISPUTED" | "PAYMENT_VERIFICATION_PENDING" | "PAYMENT_REJECTED";
   scheduled_date: string;
   scheduled_time: string;
   address: string;
@@ -72,6 +72,7 @@ export interface Booking {
   commission_amount: string;
   final_provider_amount: string;
   created_at: string;
+  full_name?: string;
 }
 
 export interface Message {

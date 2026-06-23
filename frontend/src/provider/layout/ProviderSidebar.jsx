@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -30,6 +31,25 @@ const menu = [
 ];
 
 export function ProviderSidebar({ onLogout }) {
+  const [onboarding, setOnboarding] = useState({ onboarding_step: 1, onboarding_completed: false });
+
+  useEffect(() => {
+    let mounted = true;
+    import("../../services/providerService").then((mod) => {
+      mod.providerService
+        .getOnboarding()
+        .then(({ data }) => {
+          if (!mounted) return;
+          setOnboarding({ onboarding_step: data.onboarding_step || 1, onboarding_completed: Boolean(data.onboarding_completed) });
+        })
+        .catch(() => {});
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const percent = Math.round(((onboarding.onboarding_step || 1) / 6) * 100);
   return (
     <aside className="relative h-full w-72 border-r border-slate-200 bg-white shadow-sm">
       <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-5">
@@ -44,18 +64,41 @@ export function ProviderSidebar({ onLogout }) {
 
       <nav className="h-[calc(100%-8.75rem)] space-y-1 overflow-y-auto px-3 py-4">
         {menu.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? "bg-sky-50 text-sky-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`
-            }
-          >
-            <item.icon className="h-4.5 w-4.5" />
-            {item.label}
-          </NavLink>
+          <div key={item.to}>
+            <NavLink
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? "bg-sky-50 text-sky-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`
+              }
+            >
+              <item.icon className="h-4.5 w-4.5" />
+              {item.label}
+            </NavLink>
+
+            {/* Insert onboarding CTA directly under Payments */}
+            {item.to === "/provider/payments" && (
+              <div className="mt-2 px-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-700">Complete your profile</div>
+                      <div className="text-sm text-slate-500">Get more bookings</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sky-700 font-semibold">{percent}%</div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Link to="/provider/onboarding" className="inline-block rounded-md bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-700">
+                      Complete profile
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </nav>
 

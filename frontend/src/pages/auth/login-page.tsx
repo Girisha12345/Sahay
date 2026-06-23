@@ -42,7 +42,13 @@ export function LoginPage() {
       const nextPath = searchParams.get("next");
 
       if (nextPath) {
-        navigate(nextPath, { replace: true });
+        // `next` is URL-encoded when set (e.g. from Book Now), decode before navigating
+        try {
+          const decoded = decodeURIComponent(nextPath);
+          navigate(decoded, { replace: true });
+        } catch {
+          navigate(nextPath, { replace: true });
+        }
         return;
       }
 

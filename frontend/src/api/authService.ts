@@ -1,4 +1,5 @@
 import { api } from "../services/api";
+import type { UserRole } from "../types";
 
 export interface RegisterPayload {
   first_name: string;
@@ -6,7 +7,7 @@ export interface RegisterPayload {
   email: string;
   phone_number: string;
   password: string;
-  role: "CUSTOMER" | "PROVIDER";
+  role: UserRole;
 }
 
 const saveTokens = (access: string, refresh: string) => {

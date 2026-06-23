@@ -124,9 +124,19 @@ export function CustomerBookingsPage() {
               <h2 className="mt-1 text-xl font-bold text-slate-900">{activeServiceName}</h2>
               <p className="mt-1 text-sm text-slate-500">Booking ID #{activeBooking.id}</p>
             </div>
-            <Button variant="secondary" onClick={() => navigate("/customer/bookings")}>
-              Back to all bookings
-            </Button>
+            <div className="flex gap-2">
+              {(activeBooking.status === "PENDING_PAYMENT" || activeBooking.status === "PAYMENT_REJECTED") && (
+                <Button
+                  onClick={() => navigate(`/payment/${activeBooking.id}`)}
+                  className="bg-[#5f259f] hover:bg-[#4d1d82] text-white font-bold"
+                >
+                  Proceed to Payment
+                </Button>
+              )}
+              <Button variant="secondary" onClick={() => navigate("/customer/bookings")}>
+                Back to all bookings
+              </Button>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -175,8 +185,27 @@ export function CustomerBookingsPage() {
             <div key={booking.id} className="space-y-2">
               <BookingCard booking={booking} />
 
+              <div className="flex gap-2">
+                {(booking.status === "PENDING_PAYMENT" || booking.status === "PAYMENT_REJECTED") && (
+                  <Button
+                    onClick={() => navigate(`/payment/${booking.id}`)}
+                    className="flex-1 bg-[#5f259f] hover:bg-[#4d1d82] text-white font-bold"
+                  >
+                    Proceed to Payment
+                  </Button>
+                )}
+
+                <Button 
+                  variant="secondary" 
+                  onClick={() => navigate(`/customer/bookings/${booking.id}`)}
+                  className="flex-1"
+                >
+                  View Details
+                </Button>
+              </div>
+
               {booking.status === "COMPLETED" && !booking.has_review && (
-                <Button variant="secondary" onClick={() => openReviewForm(booking)}>
+                <Button variant="secondary" onClick={() => openReviewForm(booking)} className="w-full">
                   Rate Service
                 </Button>
               )}

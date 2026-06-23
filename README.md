@@ -105,10 +105,11 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 DB_NAME=sahay_db
 DB_USER=postgres
-DB_PASSWORD=Giri@8453
+DB_PASSWORD=your-db-password
 DB_HOST=localhost
 DB_PORT=5433
-DATABASE_URL=postgresql://postgres:Giri%408453@localhost:5433/sahay_db
+DB_CONN_MAX_AGE=0
+DATABASE_URL=postgresql://postgres:your-db-password@localhost:5433/sahay_db
 
 REDIS_URL=redis://localhost:6379/0
 CACHE_BACKEND=django.core.cache.backends.locmem.LocMemCache
@@ -151,6 +152,24 @@ Implemented and integrated:
 - Wallet and transaction-backed provider earnings views
 - Chat privacy controls (PII/contact pattern flagging)
 - Admin moderation and provider approval flows
+
+## Provider Onboarding
+
+Provider onboarding is a guided multi-step flow that helps providers complete their profiles and start receiving bookings. The onboarding UI includes a progress column, an editable profile form, and dedicated steps for certificates, identity verification, and bank details.
+
+- Progress indicator: shows percent complete and checklist of steps (Basic Information, Work Experience, Location & Languages, Certificates, Identity Verification, Bank Details).
+- Profile form: `Skills & Expertise`, `Experience (Years)`, `Service City`, `Languages Known`, and an optional `Certificates & License` uploader (PDF/JPG/PNG up to 5MB).
+- Actions: `Save as Draft`, `Skip for now`, and `Continue` to advance steps.
+- Guidance: inline help text explains that adding certificates improves trust and booking chances.
+
+Recommended onboarding flow for local development:
+
+1. Create a provider user via the admin or seed script.
+2. Log in as the provider on the frontend and open `Provider > Complete your profile`.
+3. Fill basic info, upload any certificate files, and add bank details (for payouts).
+4. Complete identity verification and wait for admin approval if your deployment requires manual verification.
+
+If you want to include a screenshot of the onboarding UI, add an image at `docs/images/provider-onboarding.png` and reference it here.
 
 ## Build and Checks
 

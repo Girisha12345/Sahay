@@ -78,6 +78,8 @@ class BookingListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        if not user or user.is_anonymous:
+            return Booking.objects.none()
         queryset = Booking.objects.select_related("customer", "provider", "service")
         if user.role == User.Role.ADMIN:
             return queryset.order_by("-created_at")
@@ -93,6 +95,8 @@ class BookingDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         # allow admin to access all, providers to access their bookings, customers theirs
         user = self.request.user
+        if not user or user.is_anonymous:
+            return Booking.objects.none()
         qs = Booking.objects.select_related("customer", "provider", "service").all()
         if user.role == User.Role.ADMIN:
             return qs

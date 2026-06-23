@@ -21,6 +21,8 @@ export function ProviderDashboard() {
   const { user } = useAuthStore();
   const [dashboard, setDashboard] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
+  const [wallet, setWallet] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,16 +35,21 @@ export function ProviderDashboard() {
           bookingService.providerBookings(),
         ]);
         setDashboard(dashboardResponse.data);
+        setAllBookings(bookingsResponse.data ?? []);
         setBookings((bookingsResponse.data ?? []).slice(0, 3));
         try {
           const walletRes = await paymentService.getWallet();
+          setWallet(walletRes.data);
           setChartData(walletRes.data?.weekly_chart ?? []);
         } catch {
+          setWallet(null);
           setChartData([]);
         }
       } catch {
         setDashboard(null);
         setBookings([]);
+        setAllBookings([]);
+        setWallet(null);
         setChartData([]);
       } finally {
         setLoading(false);
@@ -53,10 +60,11 @@ export function ProviderDashboard() {
   }, []);
 
   const profile = dashboard?.profile || null;
-  const totalEarnings = bookings.reduce((sum, booking) => sum + Number(booking.final_provider_amount || 0), 0);
-  const totalBookings = bookings.length;
-  const pendingRequests = bookings.filter((booking) => booking.status === "PENDING").length;
-  const completedJobs = bookings.filter((booking) => booking.status === "COMPLETED").length;
+  const completedBookings = allBookings.filter((booking) => booking.status === "COMPLETED");
+  const totalEarnings = wallet ? Number(wallet.total_earned) : completedBookings.reduce((sum, booking) => sum + Number(booking.final_provider_amount || 0), 0);
+  const totalBookings = allBookings.length;
+  const pendingRequests = allBookings.filter((booking) => booking.status === "PENDING").length;
+  const completedJobs = completedBookings.length;
   const completion = profile
     ? Math.min(100, Math.max(20, 40 + (profile.skills?.length || 0) * 10 + (profile.documents?.length || 0) * 5))
     : 78;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8001";
+const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8000";
 
 interface ChatMessage {
   id: number;
@@ -46,7 +46,10 @@ export function useChatSocket(bookingId: number | string | null, tokenOrUser: st
 
       if (data.type === "typing") {
         // provider typing indicator
-        if (String(data.sender) !== String((tokenOrUser as any)?.id ?? localStorage.getItem("userId"))) {
+        const currentUserId = typeof tokenOrUser === "object" && tokenOrUser !== null && "id" in tokenOrUser
+          ? String(tokenOrUser.id)
+          : localStorage.getItem("userId");
+        if (String(data.sender) !== String(currentUserId)) {
           // set a short-lived typing state (not persisted here)
         }
         return;
@@ -106,8 +109,8 @@ export function useChatSocket(bookingId: number | string | null, tokenOrUser: st
       timestamp: item.created_at,
       blocked: Boolean(item.type === "error"),
       is_typing: false,
-      is_delivered: (item as any).is_delivered ?? false,
-      is_read: (item as any).is_read ?? false,
+      is_delivered: item.is_delivered ?? false,
+      is_read: item.is_read ?? false,
     })),
     sendMessage: async (content: string) => sendMessage(content),
     connected,

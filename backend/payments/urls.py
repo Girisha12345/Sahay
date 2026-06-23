@@ -9,6 +9,10 @@ from payments.views import (
     StripeIntentView,
     ProviderWalletView,
     RefundView,
+    SubmitPaymentProofView,
+    GetPaymentProofView,
+    ListPaymentProofsView,
+    VerifyPaymentProofView,
 )
 
 urlpatterns = [
@@ -21,4 +25,8 @@ urlpatterns = [
     path("wallet/", ProviderWalletView.as_view(), name="provider-wallet"),
     path("refund/", RefundView.as_view(), name="payment-refund"),
     path("webhook/", PaymentWebhookView.as_view(), name="payment-webhook"),
+    path("proof/submit/", SubmitPaymentProofView.as_view(), name="proof-submit"),
+    path("proof/booking/<int:booking_id>/", GetPaymentProofView.as_view(), name="proof-detail"),
+    path("proof/list/", ListPaymentProofsView.as_view(), name="proof-list"),
+    path("proof/<int:pk>/verify/", VerifyPaymentProofView.as_view(), name="proof-verify"),
 ]

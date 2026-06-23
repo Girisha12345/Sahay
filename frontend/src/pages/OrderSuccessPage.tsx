@@ -36,7 +36,7 @@ export function OrderSuccessPage() {
         setLoading(true);
         const data = await checkoutService.getBooking(bookingId);
         setBooking(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load booking details");
       } finally {
         setLoading(false);

@@ -124,12 +124,65 @@ class Command(BaseCommand):
                 },
             )
 
+            import uuid
+            from django.utils import timezone
+            from payments.models import Payment, ProviderWallet, WalletTransaction
+
+            # Choose payment status based on booking status
+            if booking.status in [Booking.Status.PENDING_PAYMENT, Booking.Status.REJECTED]:
+                pay_status = Payment.PaymentStatus.INITIATED
+            elif booking.status in [Booking.Status.CANCELLED]:
+                pay_status = Payment.PaymentStatus.FAILED
+            elif booking.status in [Booking.Status.REFUNDED]:
+                pay_status = Payment.PaymentStatus.REFUNDED
+            else:
+                pay_status = Payment.PaymentStatus.PAID
+
+            payment_method = choice([x[0] for x in Booking.PaymentMethod.choices])
+            booking.payment_method = payment_method
+            booking.save()
+
+            payment, _ = Payment.objects.get_or_create(
+                booking=booking,
+                defaults={
+                    "amount": booking.total_price,
+                    "commission": booking.commission_amount,
+                    "payment_method": payment_method,
+                    "payment_status": pay_status,
+                    "transaction_id": f"pay_{uuid.uuid4().hex[:16]}" if pay_status != Payment.PaymentStatus.INITIATED else "",
+                }
+            )
+
+            if booking.status == Booking.Status.COMPLETED and pay_status == Payment.PaymentStatus.PAID:
+                payment.payment_status = Payment.PaymentStatus.RELEASED
+                payment.provider_released_at = timezone.now()
+                payment.save()
+
+                wallet, _ = ProviderWallet.objects.get_or_create(provider=booking.provider)
+                wallet.total_earned = Decimal(str(wallet.total_earned)) + booking.final_provider_amount
+                wallet.total_commission_deducted = Decimal(str(wallet.total_commission_deducted)) + booking.commission_amount
+                wallet.pending_payout = Decimal(str(wallet.pending_payout)) + booking.final_provider_amount
+                wallet.save()
+
+                WalletTransaction.objects.get_or_create(
+                    wallet=wallet,
+                    booking=booking,
+                    tx_type=WalletTransaction.TxType.CREDIT,
+                    defaults={
+                        "amount": booking.final_provider_amount,
+                        "commission_deducted": booking.commission_amount,
+                        "description": f"Payment received for Booking #{booking.id}",
+                    }
+                )
+
             if booking.status == Booking.Status.COMPLETED:
                 baseline = RATING_BASELINE_BY_CATEGORY.get(service.category.name, 4.2)
                 generated_rating = int(round(max(1, min(5, uniform(baseline - 0.6, baseline + 0.4)))))
                 Review.objects.get_or_create(
                     booking=booking,
                     defaults={
+                        "service": booking.service,
+                        "user": booking.customer,
                         "rating": generated_rating,
                         "comment": faker.sentence(nb_words=10),
                     },

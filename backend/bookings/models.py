@@ -16,6 +16,8 @@ class Booking(models.Model):
 		CANCELLED = "CANCELLED", "Cancelled"
 		REFUNDED = "REFUNDED", "Refunded"
 		DISPUTED = "DISPUTED", "Disputed"
+		PAYMENT_VERIFICATION_PENDING = "PAYMENT_VERIFICATION_PENDING", "Payment Verification Pending"
+		PAYMENT_REJECTED = "PAYMENT_REJECTED", "Payment Rejected"
 
 	class PaymentMethod(models.TextChoices):
 		UPI = "upi", "UPI"
@@ -32,7 +34,7 @@ class Booking(models.Model):
 	address_line = models.TextField(blank=True, default="")
 	area = models.CharField(max_length=100, blank=True, default="")
 	city = models.CharField(max_length=100, blank=True, default="")
-	status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+	status = models.CharField(max_length=50, choices=Status.choices, default=Status.PENDING)
 	scheduled_date = models.DateField()
 	scheduled_time = models.TimeField()
 	address = models.CharField(max_length=255)

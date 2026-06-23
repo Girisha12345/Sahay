@@ -9,9 +9,9 @@ type OrderSummaryProps = {
 };
 
 export function OrderSummary({ service, booking, label = "Order Summary" }: OrderSummaryProps) {
-  const basePrice = booking ? Number(booking.total_price) : (service ? Number(service.base_price) : 0);
-  const commission = booking ? Number(booking.commission_amount) : Math.round(basePrice * 0.10);
-  const totalPrice = booking ? Number(booking.total_price) : basePrice;
+  const basePrice = booking ? Number(booking.total_price) - Number(booking.commission_amount) : (service ? Number(service.base_price) : 0);
+  const commission = booking ? Number(booking.commission_amount) : Number((basePrice * 0.10).toFixed(2));
+  const totalPrice = booking ? Number(booking.total_price) : (basePrice + commission);
 
   return (
     <Card className="sticky top-20 rounded-xl border border-slate-200 p-5 shadow-sm">

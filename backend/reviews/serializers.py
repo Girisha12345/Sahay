@@ -4,6 +4,8 @@ from reviews.models import Review
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    # expose `customer` in the API but source it from the model's `user` field
+    customer = serializers.PrimaryKeyRelatedField(source="user", read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     service_name = serializers.SerializerMethodField(read_only=True)
     provider_name = serializers.SerializerMethodField(read_only=True)
@@ -34,10 +36,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         return value
 
     def get_customer_name(self, obj):
-        if getattr(obj, "customer", None):
-            return obj.customer.first_name or "Customer"
+        # prefer `user` (model field) then `customer` if present
         if getattr(obj, "user", None):
             return obj.user.first_name or "Customer"
+        if getattr(obj, "customer", None):
+            return obj.customer.first_name or "Customer"
         return "Customer"
 
     def get_service_name(self, obj):

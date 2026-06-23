@@ -17,7 +17,7 @@ const schema = z.object({
   email: z.string().email("Enter a valid email"),
   phone_number: z.string().min(10, "Phone number is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["CUSTOMER", "PROVIDER"]),
+  role: z.enum(["CUSTOMER", "PROVIDER", "ADMIN"]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -60,7 +60,7 @@ export function RegisterPage() {
     <div className="mx-auto mt-8 max-w-lg">
       <Card>
         <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
-        <p className="mt-1 text-sm text-slate-500">Join as a customer or service provider.</p>
+        <p className="mt-1 text-sm text-slate-500">Join as a customer, provider, or administrator.</p>
         <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
           <div className="md:col-span-2">
             <Input placeholder="Full name" {...register("name")} />
@@ -98,6 +98,7 @@ export function RegisterPage() {
             >
               <option value="CUSTOMER">Customer</option>
               <option value="PROVIDER">Provider</option>
+              <option value="ADMIN">Admin</option>
             </select>
           </div>
           {error && <p className="md:col-span-2 rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}

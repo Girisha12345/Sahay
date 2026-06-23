@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 import uuid
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import stripe
 from django.conf import settings
@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from accounts.models import User
 from accounts.permissions import IsProviderRole
 from bookings.models import Booking
-from payments.models import Payment, ProviderWallet, WalletTransaction
+from payments.models import Payment, ProviderWallet, WalletTransaction, PaymentProof
 from payments.permissions import IsCustomerOrAdmin, IsCustomerProviderOrAdmin
 from payments.serializers import (
 	PaymentIntentSerializer,
@@ -27,6 +27,7 @@ from payments.serializers import (
 	ProviderWalletSerializer,
 	StripeIntentSerializer,
 	WalletTransactionSerializer,
+	PaymentProofSerializer,
 )
 from payments.utils import calculate_commission
 from notifications.models import Notification
@@ -551,3 +552,176 @@ class PaymentHistoryView(generics.ListAPIView):
 		return Payment.objects.select_related("booking").filter(
 			booking__customer=self.request.user
 		).order_by("-created_at")
+
+
+from rest_framework.parsers import MultiPartParser, FormParser
+
+class SubmitPaymentProofView(APIView):
+	permission_classes = [permissions.IsAuthenticated]
+	parser_classes = [MultiPartParser, FormParser]
+
+	def post(self, request):
+		booking_id = request.data.get("booking_id")
+		amount_expected = request.data.get("amount_expected")
+		amount_paid = request.data.get("amount_paid")
+		utr_number = request.data.get("utr_number")
+		screenshot = request.FILES.get("screenshot")
+
+		if not (booking_id and amount_expected and amount_paid and utr_number and screenshot):
+			return Response({"detail": "All fields (booking_id, amount_expected, amount_paid, utr_number, screenshot) are required."}, status=400)
+
+		booking = Booking.objects.filter(id=booking_id).first()
+		if not booking:
+			return Response({"detail": "Booking not found."}, status=404)
+
+		if request.user.role == User.Role.CUSTOMER and booking.customer_id != request.user.id:
+			return Response({"detail": "You do not have permission to submit proof for this booking."}, status=403)
+
+		try:
+			expected = Decimal(str(amount_expected))
+			paid = Decimal(str(amount_paid))
+		except (ValueError, TypeError, InvalidOperation):
+			return Response({"detail": "Invalid amount format."}, status=400)
+
+		# Determine initial status based on mismatch
+		if paid < expected:
+			proof_status = PaymentProof.ProofStatus.UNDERPAID
+		elif paid > expected:
+			proof_status = PaymentProof.ProofStatus.OVERPAID
+		else:
+			proof_status = PaymentProof.ProofStatus.PENDING
+
+		# Create payment proof
+		proof = PaymentProof.objects.create(
+			booking=booking,
+			customer=request.user,
+			amount_expected=expected,
+			amount_paid=paid,
+			utr_number=utr_number,
+			screenshot=screenshot,
+			status=proof_status
+		)
+
+		# Update booking status to PAYMENT_VERIFICATION_PENDING
+		booking.status = Booking.Status.PAYMENT_VERIFICATION_PENDING
+		booking.save(update_fields=["status", "updated_at"])
+
+		# Create notification for admin
+		admins = User.objects.filter(role=User.Role.ADMIN)
+		for admin in admins:
+			create_notification(
+				user=admin,
+				title="New payment proof submitted",
+				message=f"A payment proof has been submitted for Booking #{booking.id}.",
+				notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
+				payload={"booking_id": booking.id, "proof_id": proof.id},
+			)
+
+		return Response(PaymentProofSerializer(proof).data, status=status.HTTP_201_CREATED)
+
+
+class GetPaymentProofView(APIView):
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get(self, request, booking_id):
+		booking = Booking.objects.filter(id=booking_id).first()
+		if not booking:
+			return Response({"detail": "Booking not found."}, status=404)
+
+		if request.user.role != User.Role.ADMIN and booking.customer_id != request.user.id and booking.provider_id != request.user.id:
+			return Response({"detail": "You do not have permission to view payment proof for this booking."}, status=403)
+
+		proof = PaymentProof.objects.filter(booking=booking).order_by("-created_at").first()
+		if not proof:
+			return Response({"detail": "No payment proof found for this booking."}, status=404)
+
+		return Response(PaymentProofSerializer(proof).data)
+
+
+class ListPaymentProofsView(generics.ListAPIView):
+	serializer_class = PaymentProofSerializer
+	permission_classes = [permissions.IsAuthenticated]
+	filter_backends = [SearchFilter, OrderingFilter]
+	search_fields = ["utr_number", "status", "booking__id"]
+	ordering_fields = ["created_at", "amount_expected", "amount_paid"]
+	ordering = ["-created_at"]
+
+	def get_queryset(self):
+		if self.request.user.role != User.Role.ADMIN:
+			return PaymentProof.objects.none()
+		return PaymentProof.objects.select_related("booking", "customer").all()
+
+
+class VerifyPaymentProofView(APIView):
+	permission_classes = [permissions.IsAuthenticated]
+
+	def post(self, request, pk):
+		if request.user.role != User.Role.ADMIN:
+			return Response({"detail": "Only admins can verify payment proofs."}, status=403)
+
+		proof = PaymentProof.objects.filter(pk=pk).first()
+		if not proof:
+			return Response({"detail": "Payment proof not found."}, status=404)
+
+		verification_status = request.data.get("status")
+		if verification_status not in ["APPROVED", "REJECTED"]:
+			return Response({"detail": "Status must be APPROVED or REJECTED."}, status=400)
+
+		booking = proof.booking
+
+		if verification_status == "APPROVED":
+			proof.status = PaymentProof.ProofStatus.APPROVED
+			proof.save(update_fields=["status"])
+
+			booking.status = Booking.Status.CONFIRMED
+			booking.save(update_fields=["status", "updated_at"])
+
+			# Create or update payment entry
+			commission, _ = calculate_commission(booking.total_price)
+			payment, _ = Payment.objects.update_or_create(
+				booking=booking,
+				defaults={
+					"amount": booking.total_price,
+					"commission": commission,
+					"payment_method": booking.payment_method or "upi",
+					"payment_status": Payment.PaymentStatus.PAID,
+					"transaction_id": proof.utr_number,
+					"provider_released_at": timezone.now() if booking.status == Booking.Status.COMPLETED else None,
+				}
+			)
+
+			credit_provider_wallet_for_payment(payment)
+
+			# Notify Customer and Provider
+			create_notification(
+				user=booking.customer,
+				title="Booking Confirmed",
+				message=f"Your payment proof has been approved. Booking #{booking.id} is confirmed.",
+				notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
+				payload={"booking_id": booking.id},
+			)
+			create_notification(
+				user=booking.provider,
+				title="New Confirmed Booking",
+				message=f"Booking #{booking.id} has been paid and is confirmed.",
+				notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
+				payload={"booking_id": booking.id},
+			)
+
+		else:
+			proof.status = PaymentProof.ProofStatus.REJECTED
+			proof.save(update_fields=["status"])
+
+			booking.status = Booking.Status.PAYMENT_REJECTED
+			booking.save(update_fields=["status", "updated_at"])
+
+			# Notify Customer
+			create_notification(
+				user=booking.customer,
+				title="Payment Verification Failed",
+				message=f"Your payment proof for Booking #{booking.id} was rejected. Please resubmit your transaction details and screenshot.",
+				notification_type=Notification.NotificationType.PAYMENT_FAILED,
+				payload={"booking_id": booking.id},
+			)
+
+		return Response(PaymentProofSerializer(proof).data)

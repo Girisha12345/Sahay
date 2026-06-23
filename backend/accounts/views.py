@@ -1,10 +1,13 @@
 import logging
-from django.db import DatabaseError, OperationalError, ProgrammingError
+import os
 
+from django.conf import settings
 from django.contrib.auth import authenticate
-from django.db.models import Count
+from django.core.files.storage import default_storage
+from django.db import DatabaseError, OperationalError, ProgrammingError
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -14,6 +17,7 @@ from accounts.permissions import IsProviderRole
 from accounts.serializers import (
 	ChangePasswordSerializer,
 	LoginSerializer,
+	ProviderOnboardingSerializer,
 	ProviderProfileSerializer,
 	ProviderProfileUpdateSerializer,
 	RegisterSerializer,
@@ -121,10 +125,10 @@ class ProviderApplyView(APIView):
 		if request.user.role != User.Role.PROVIDER:
 			return Response({"detail": "Only provider accounts can apply."}, status=403)
 		profile, _ = ProviderProfile.objects.get_or_create(user=request.user)
-		serializer = ProviderProfileSerializer(profile, data=request.data, partial=True)
+		serializer = ProviderOnboardingSerializer(data=request.data, context={"request": request})
 		serializer.is_valid(raise_exception=True)
 		serializer.save(user=request.user)
-		return Response(serializer.data, status=201)
+		return Response(ProviderProfileSerializer(profile).data, status=201)
 
 
 class ProviderDashboardView(APIView):
@@ -148,6 +152,7 @@ class ProviderDashboardView(APIView):
 			total_earnings = 0.0
 
 		profile_data = {
+			"user": UserSerializer(request.user).data,
 			"skills": getattr(profile, "skills", []),
 			"documents": getattr(profile, "documents", []),
 			"verification_status": getattr(profile, "verification_status", "PENDING"),
@@ -172,7 +177,7 @@ class ProviderUpdateProfileView(APIView):
 	permission_classes = [IsProviderRole]
 
 	def put(self, request):
-		serializer = ProviderProfileUpdateSerializer(data=request.data, context={"request": request})
+		serializer = ProviderOnboardingSerializer(data=request.data, context={"request": request})
 		serializer.is_valid(raise_exception=True)
 		profile = serializer.save()
 		return Response(
@@ -185,6 +190,71 @@ class ProviderUpdateProfileView(APIView):
 
 	def patch(self, request):
 		return self.put(request)
+
+
+class ProviderOnboardingView(APIView):
+	permission_classes = [IsProviderRole]
+
+	def get(self, request):
+		profile, _ = ProviderProfile.objects.get_or_create(user=request.user)
+		return Response(ProviderProfileSerializer(profile).data)
+
+	def patch(self, request):
+		serializer = ProviderOnboardingSerializer(data=request.data, context={"request": request})
+		serializer.is_valid(raise_exception=True)
+		profile = serializer.save()
+		return Response(
+			{
+				"detail": "Provider onboarding saved successfully.",
+				"profile": ProviderProfileSerializer(profile).data,
+				"user": UserSerializer(request.user).data,
+			}
+		)
+
+	def post(self, request):
+		return self.patch(request)
+
+
+class ProviderProfileDetailView(APIView):
+	permission_classes = [IsProviderRole]
+
+	def get(self, request):
+		profile, _ = ProviderProfile.objects.get_or_create(user=request.user)
+		return Response(ProviderProfileSerializer(profile).data)
+
+
+class ProviderDocumentUploadView(APIView):
+	permission_classes = [IsProviderRole]
+	parser_classes = [MultiPartParser, FormParser]
+
+	def post(self, request):
+		profile, _ = ProviderProfile.objects.get_or_create(user=request.user)
+		document_type = (request.data.get("document_type") or request.query_params.get("document_type") or "certificates").lower()
+		files = request.FILES.getlist("files") or ([] if "file" not in request.FILES else [request.FILES["file"]])
+		if not files:
+			return Response({"detail": "No files provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+		saved_urls = []
+		base_path = os.path.join("providers", str(request.user.id), document_type)
+		for f in files:
+			filename = default_storage.save(os.path.join(base_path, f.name), f)
+			file_url = settings.MEDIA_URL.rstrip("/") + "/" + filename.replace("\\", "/")
+			saved_urls.append(file_url)
+
+		if document_type in {"identity", "identity_documents", "id", "verification"}:
+			existing = profile.identity_documents or []
+			profile.identity_documents = existing + saved_urls
+			profile.onboarding_step = max(profile.onboarding_step, 5)
+			update_fields = ["identity_documents", "onboarding_step", "updated_at"]
+		else:
+			existing = profile.certificates or []
+			profile.certificates = existing + saved_urls
+			profile.onboarding_step = max(profile.onboarding_step, 4)
+			update_fields = ["certificates", "onboarding_step", "updated_at"]
+
+		profile.save(update_fields=update_fields)
+
+		return Response({"detail": "Files uploaded.", "files": saved_urls}, status=status.HTTP_201_CREATED)
 
 
 class ProviderDeactivateAccountView(APIView):

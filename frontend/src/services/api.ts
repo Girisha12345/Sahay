@@ -90,6 +90,9 @@ api.interceptors.response.use(
       message = "Unauthorized. Please login again.";
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+      }
     } else if (status === 403) {
       message = "Access denied. You do not have permission to perform this action.";
     } else if (status === 404) {
@@ -99,7 +102,12 @@ api.interceptors.response.use(
       message = backendMessage || "Server error. Please try again shortly.";
     }
 
-    emitApiError(message);
+    const isProfileRequest = error?.config?.url?.includes("auth/profile");
+    if (status === 401 && isProfileRequest) {
+      // Suppress the global error banner for initial/expired profile check
+    } else {
+      emitApiError(message);
+    }
 
     const normalizedError = Object.assign(new Error(message), {
       status,

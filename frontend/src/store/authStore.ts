@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { authService } from "../services/authService";
-import type { User } from "../types";
+import type { User, UserRole } from "../types";
 
 type AuthState = {
   user: User | null;
@@ -18,7 +18,7 @@ type AuthState = {
     email: string;
     phone_number: string;
     password: string;
-    role: "CUSTOMER" | "PROVIDER";
+    role: UserRole;
   }) => Promise<void>;
   loadProfile: () => Promise<void>;
   logout: () => Promise<void>;
@@ -64,12 +64,13 @@ export const useAuthStore = create<AuthState>()(
 
       async loadProfile() {
         if (!get().accessToken) return;
+        set({ loading: true });
         try {
           const { data } = await authService.getProfile();
-          set({ user: data, isAuthenticated: true });
+          set({ user: data, isAuthenticated: true, loading: false });
         } catch {
           authService.clearTokens();
-          set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+          set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, loading: false });
         }
       },
 
@@ -98,3 +99,17 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+if (typeof window !== "undefined") {
+  window.addEventListener("auth:unauthorized", () => {
+    authService.clearTokens();
+    useAuthStore.setState({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      loading: false,
+    });
+  });
+}
+

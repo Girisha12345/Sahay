@@ -91,19 +91,18 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME", "sahay_db"),
-        "USER": os.getenv("DB_USER", "sahay_user"),
+        "USER": os.getenv("DB_USER", "postgres"),
         "PASSWORD": os.getenv("DB_PASSWORD", ""),
         "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        "CONN_MAX_AGE": 60,
+        "PORT": int(os.getenv("DB_PORT", "5433")),
+        # Use short-lived connections in development to avoid exhausting DB slots.
+        # Set DB_CONN_MAX_AGE env var to a higher value for production (seconds).
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
         "OPTIONS": {
             "connect_timeout": 10,
         },
     }
 }
-
-if os.getenv("DATABASE_URL"):
-    DATABASES["default"] = env.db("DATABASE_URL")
 
 
 # Password validation

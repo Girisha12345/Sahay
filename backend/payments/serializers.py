@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from payments.models import Payment, ProviderWallet, WalletTransaction
+from payments.models import Payment, ProviderWallet, WalletTransaction, PaymentProof
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -59,3 +59,27 @@ class ProviderWalletSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderWallet
         fields = ["total_earned", "total_commission_deducted", "pending_payout", "updated_at", "transactions"]
+
+
+class PaymentProofSerializer(serializers.ModelSerializer):
+    customer_email = serializers.EmailField(source="customer.email", read_only=True)
+    booking_service_title = serializers.CharField(source="booking.service.title", read_only=True)
+    booking_customer_name = serializers.CharField(source="booking.full_name", read_only=True)
+
+    class Meta:
+        model = PaymentProof
+        fields = [
+            "id",
+            "booking",
+            "customer",
+            "customer_email",
+            "booking_service_title",
+            "booking_customer_name",
+            "amount_expected",
+            "amount_paid",
+            "utr_number",
+            "screenshot",
+            "status",
+            "created_at",
+        ]
+        read_only_fields = ["customer", "status", "created_at"]

@@ -8,8 +8,8 @@ import { StepIndicator } from "../components/checkout/StepIndicator";
 import { AddressForm } from "../components/checkout/AddressForm";
 import { AddressSelector } from "../components/checkout/AddressSelector";
 import { OrderSummary } from "../components/checkout/OrderSummary";
-import { PaymentMethodSelector } from "../components/checkout/PaymentMethodSelector";
-import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+
+import { AlertCircle, ChevronLeft, ChevronRight, Smartphone } from "lucide-react";
 import checkoutService from "../services/checkoutService";
 import { bookingService } from "../services/bookingService";
 import { serviceService } from "../services/serviceService";
@@ -50,15 +50,28 @@ export function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<AddressItem | null>(
     null
   );
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<Booking["payment_method"]>("razorpay");
+  const [selectedPaymentMethod] =
+    useState<Booking["payment_method"]>("upi");
   const [booking, setBooking] = useState<Booking | null>(initialBooking || null);
-  const [serviceDate, setServiceDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    return date.toISOString().split("T")[0];
-  });
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  const todayStr = getTodayString();
+
+  const [serviceDate, setServiceDate] = useState(todayStr);
   const [serviceTime, setServiceTime] = useState("10:00");
+
+  const handleDateChange = (val: string) => {
+    if (!val || val < todayStr) {
+      setServiceDate(todayStr);
+    } else {
+      setServiceDate(val);
+    }
+  };
 
   useEffect(() => {
     const serviceIdParam = searchParams.get("serviceId");
@@ -95,7 +108,7 @@ export function CheckoutPage() {
         } else if (data.length > 0) {
           setSelectedAddress(data[0]);
         }
-      } catch (err) {
+      } catch {
         setError("Failed to load addresses");
       } finally {
         setLoading(false);
@@ -111,9 +124,16 @@ export function CheckoutPage() {
       setError("Please select or add a delivery address");
       return false;
     }
-    if (currentStep === 2 && (!serviceDate || !serviceTime)) {
-      setError("Please choose service date and time before payment");
-      return false;
+    if (currentStep === 2) {
+      if (!serviceDate || serviceDate < todayStr) {
+        setError("Service date cannot be in the past.");
+        setServiceDate(todayStr);
+        return false;
+      }
+      if (!serviceTime) {
+        setError("Please choose service date and time before payment");
+        return false;
+      }
     }
     return true;
   };
@@ -157,7 +177,7 @@ export function CheckoutPage() {
       setSelectedAddress(newAddress);
       setShowAddressForm(false);
       setError("");
-    } catch (err) {
+    } catch {
       setError("Failed to save address");
     } finally {
       setLoading(false);
@@ -337,10 +357,14 @@ export function CheckoutPage() {
                               <label className="mb-1 block text-xs font-semibold text-slate-600">Service Date</label>
                               <input
                                 type="date"
+                                min={todayStr}
                                 value={serviceDate}
-                                onChange={(e) => setServiceDate(e.target.value)}
+                                onChange={(e) => handleDateChange(e.target.value)}
                                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
                               />
+                              <p className="mt-1 text-xs text-slate-500">
+                                Please select today or a future date.
+                              </p>
                             </div>
                             <div>
                               <label className="mb-1 block text-xs font-semibold text-slate-600">Service Time</label>
@@ -360,10 +384,33 @@ export function CheckoutPage() {
 
                 {currentStep === 3 && (
                   <div className="space-y-6">
-                    <PaymentMethodSelector
-                      selectedMethod={selectedPaymentMethod}
-                      onSelect={setSelectedPaymentMethod}
-                    />
+                    <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-6">
+                      <div className="flex gap-4">
+                        <div className="rounded-lg bg-sky-600 p-3 text-white h-fit">
+                          <Smartphone className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-900">
+                            UPI QR Code Payment
+                          </h3>
+                          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                            To ensure a safe and secure transaction, Sahāy utilizes a manual QR Code verification system. 
+                            On the next screen, you will be presented with a secure QR code to scan and pay the exact amount. 
+                            Once the transaction is done, simply upload your payment screenshot and enter the transaction ID to confirm your booking.
+                          </p>
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              Safe & Secure
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                              Any UPI App Supported
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

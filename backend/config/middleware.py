@@ -1,5 +1,7 @@
 import logging
+import traceback
 
+from django.conf import settings
 from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
@@ -21,9 +23,20 @@ class GlobalExceptionMiddleware:
             request.path,
             str(exception),
         )
+        
+        error_detail = "An unexpected error occurred."
+        tb = None
+        if settings.DEBUG:
+            # In development, include the actual error message and traceback
+            error_detail = str(exception)
+            tb = traceback.format_exc()
+            print(f"ERROR: {request.method} {request.path}")
+            print(tb)
+        
         return JsonResponse(
             {
-                "detail": "An unexpected error occurred.",
+                "detail": error_detail,
+                "traceback": tb if settings.DEBUG else None,
             },
             status=500,
         )

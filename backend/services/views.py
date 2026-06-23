@@ -65,6 +65,7 @@ class ProviderMyServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ProviderMyServiceToggleActiveView(generics.GenericAPIView):
 	serializer_class = ProviderServiceSerializer
 	permission_classes = [permissions.IsAuthenticated, IsProviderRole]
+	queryset = Service.objects.all()
 
 	def post(self, request, pk):
 		service = Service.objects.filter(pk=pk, provider=request.user).first()

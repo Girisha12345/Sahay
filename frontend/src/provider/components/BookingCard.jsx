@@ -47,12 +47,46 @@ export function BookingCard({ booking, onAccept, onReject, onComplete, onResched
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <button type="button" onClick={() => onAccept(booking)} className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">Accept</button>
-        <button type="button" onClick={() => onReject(booking)} className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700">Reject</button>
-        <button type="button" onClick={() => onReschedule(booking)} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Reschedule</button>
-        <button type="button" onClick={() => onComplete(booking)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">Complete</button>
-      </div>
+      {!["COMPLETED", "CANCELLED", "REFUNDED", "REJECTED", "DISPUTED"].includes(booking.status) && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {booking.status === "PENDING" && (
+            <>
+              <button
+                type="button"
+                onClick={() => onAccept(booking)}
+                className="flex-1 min-w-[100px] rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={() => onReject(booking)}
+                className="flex-1 min-w-[100px] rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {["ACCEPTED", "CONFIRMED", "IN_PROGRESS"].includes(booking.status) && (
+            <>
+              <button
+                type="button"
+                onClick={() => onReschedule(booking)}
+                className="flex-1 min-w-[100px] rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Reschedule
+              </button>
+              <button
+                type="button"
+                onClick={() => onComplete(booking)}
+                className="flex-1 min-w-[100px] rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                Complete
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -38,4 +38,20 @@ export const paymentService = {
       refund_type: refundType,
       amount,
     }),
+
+  submitProof: (formData: FormData) =>
+    api.post("payments/proof/submit/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  getProof: (bookingId: number) =>
+    api.get(`payments/proof/booking/${bookingId}/`),
+
+  listProofs: () =>
+    api.get("payments/proof/list/"),
+
+  verifyProof: (proofId: number, status: "APPROVED" | "REJECTED") =>
+    api.post(`payments/proof/${proofId}/verify/`, { status }),
 };

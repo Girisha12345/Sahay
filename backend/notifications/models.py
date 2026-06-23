@@ -9,6 +9,7 @@ class Notification(models.Model):
         BOOKING_IN_PROGRESS = "BOOKING_IN_PROGRESS", "Booking In Progress"
         BOOKING_COMPLETED = "BOOKING_COMPLETED", "Booking Completed"
         PAYMENT_SUCCESS = "PAYMENT_SUCCESS", "Payment Success"
+        PAYMENT_FAILED = "PAYMENT_FAILED", "Payment Failed"
         NEW_MESSAGE = "NEW_MESSAGE", "New Message"
         DISPUTE = "DISPUTE", "Dispute"
 

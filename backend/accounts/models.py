@@ -64,10 +64,14 @@ class ProviderProfile(models.Model):
 	hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 	documents = models.JSONField(default=list, blank=True)
 	certificates = models.JSONField(default=list, blank=True)
+	identity_documents = models.JSONField(default=list, blank=True)
+	bank_details = models.JSONField(default=dict, blank=True)
 	service_areas = models.JSONField(default=list, blank=True)
 	languages_known = models.JSONField(default=list, blank=True)
 	is_available = models.BooleanField(default=True)
 	availability_schedule = models.JSONField(default=list, blank=True)
+	onboarding_step = models.PositiveSmallIntegerField(default=1)
+	onboarding_completed = models.BooleanField(default=False)
 	verification_status = models.CharField(
 		max_length=10,
 		choices=VerificationStatus.choices,

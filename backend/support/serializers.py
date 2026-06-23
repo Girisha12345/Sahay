@@ -13,6 +13,5 @@ class SupportTicketSerializer(serializers.ModelSerializer):
             "status",
             "booking",
             "created_at",
-            "updated_at",
         ]
-        read_only_fields = ["id", "status", "created_at", "updated_at"]
+        read_only_fields = ["id", "status", "created_at"]

@@ -7,6 +7,7 @@ import { AdminCategoriesPage } from "./pages/admin/categories-page";
 import { AdminDashboardPage } from "./pages/admin/dashboard-page";
 import { AdminFlaggedChatsPage } from "./pages/admin/flagged-chats-page";
 import { AdminProvidersPage } from "./pages/admin/providers-page";
+import { PaymentVerificationPage } from "./pages/admin/PaymentVerificationPage";
 import { LoginPage } from "./pages/auth/login-page";
 import { RegisterPage } from "./pages/auth/register-page";
 import { CustomerAddresses } from "./pages/customer/CustomerAddresses";
@@ -43,6 +44,7 @@ import { ProviderServicesPage } from "./pages/provider/services-page";
 import { useAuthStore } from "./store/authStore";
 import { useServiceStore } from "./store/serviceStore";
 import { getDashboardPathForRole } from "./utils/routes";
+import { StaticPage } from "./pages/StaticPage";
 
 function App() {
   const { loadProfile } = useAuthStore();
@@ -346,6 +348,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/payments"
+          element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <PaymentVerificationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/support/dashboard"
           element={
             <ProtectedRoute roles={["SUPPORT_AGENT", "ADMIN"]}>
@@ -353,6 +363,19 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/about" element={<StaticPage pageKey="about" />} />
+        <Route path="/careers" element={<StaticPage pageKey="careers" />} />
+        <Route path="/help" element={<StaticPage pageKey="help" />} />
+        <Route path="/faqs" element={<StaticPage pageKey="faqs" />} />
+        <Route path="/customer-care" element={<StaticPage pageKey="customer-care" />} />
+        <Route path="/dispute" element={<StaticPage pageKey="dispute" />} />
+        <Route path="/refund-policy" element={<StaticPage pageKey="refund-policy" />} />
+        <Route path="/privacy-policy" element={<StaticPage pageKey="privacy-policy" />} />
+        <Route path="/terms" element={<StaticPage pageKey="terms" />} />
+        <Route path="/cancellation-policy" element={<StaticPage pageKey="cancellation-policy" />} />
+        <Route path="/security-policy" element={<StaticPage pageKey="security-policy" />} />
+        <Route path="/cookie-policy" element={<StaticPage pageKey="cookie-policy" />} />
 
         <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
@@ -364,14 +387,6 @@ function App() {
 export default App;
 
 function RoleDashboardRedirect() {
-      <Route
-        path="/provider/chat"
-        element={
-          <ProtectedRoute roles={["PROVIDER"]}>
-            <ProviderMessages />
-          </ProtectedRoute>
-        }
-      />
   const { user } = useAuthStore();
   if (user?.role === "PROVIDER") {
     const key = `provider_onboarding_done_${localStorage.getItem("accessToken") || "default"}`;

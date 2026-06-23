@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBookingStore } from "../../store/bookingStore";
 import { useServiceStore } from "../../store/serviceStore";
@@ -36,9 +36,9 @@ export function ProviderDashboardPage() {
   const [reviews, setReviews] = useState<ServiceReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
-  const incomingBookings = bookings.filter((b) => b.status === "PENDING");
-  const activeBookings = bookings.filter((b) => b.status === "ACCEPTED" || b.status === "IN_PROGRESS");
-  const completedBookings = bookings.filter((b) => b.status === "COMPLETED");
+  const incomingBookings = useMemo(() => bookings.filter((b) => b.status === "PENDING"), [bookings]);
+  const activeBookings = useMemo(() => bookings.filter((b) => b.status === "ACCEPTED" || b.status === "IN_PROGRESS"), [bookings]);
+  const completedBookings = useMemo(() => bookings.filter((b) => b.status === "COMPLETED"), [bookings]);
 
   // Load initial data
   useEffect(() => {
@@ -95,7 +95,7 @@ export function ProviderDashboardPage() {
       earnings: totalEarnings,
       rating: parseFloat(avgRating as string),
     });
-  }, [bookings, reviews]);
+  }, [incomingBookings, activeBookings, completedBookings, reviews]);
 
   const handleAcceptBooking = async (bookingId: number) => {
     setProcessing(bookingId);

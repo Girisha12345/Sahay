@@ -148,6 +148,12 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"service_date": "service_date is required."})
         if not attrs.get("scheduled_time"):
             raise serializers.ValidationError({"service_time": "service_time is required."})
+
+        from datetime import date
+        scheduled_date = attrs.get("scheduled_date")
+        if scheduled_date and scheduled_date < date.today():
+            raise serializers.ValidationError("Service date cannot be in the past.")
+
         return attrs
 
     def create(self, validated_data):
@@ -179,7 +185,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         provider = validated_data.pop("provider")
         total_price = validated_data.pop("total_price")
         readable_address = ", ".join(part for part in [address_line, area, locality, city] if part)
-        status = Booking.Status.PENDING_PAYMENT if payment_method == Booking.PaymentMethod.CASH else Booking.Status.PENDING
+        status = Booking.Status.PENDING_PAYMENT
         return Booking.objects.create(
             customer=self.context["request"].user,
             provider=provider,
@@ -218,6 +224,8 @@ class BookingStatusUpdateSerializer(serializers.ModelSerializer):
             Booking.Status.COMPLETED,
             Booking.Status.CANCELLED,
             Booking.Status.DISPUTED,
+            Booking.Status.PAYMENT_VERIFICATION_PENDING,
+            Booking.Status.PAYMENT_REJECTED,
         }
         if value not in allowed:
             raise serializers.ValidationError("Invalid status transition target.")

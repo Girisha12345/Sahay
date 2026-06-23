@@ -4,6 +4,29 @@ export const providerService = {
   // Dashboard and Profile
   getDashboardStats: () => api.get("provider/dashboard/"),
   getProfile: () => api.get("provider/profile/"),
+  getOnboarding: () => api.get("provider/onboarding/"),
+  saveOnboarding: (payload: {
+    full_name?: string;
+    phone_number?: string;
+    skills?: string[];
+    experience_years?: number;
+    city?: string;
+    certificates?: string[];
+    identity_documents?: string[];
+    bank_details?: Record<string, string>;
+    service_areas?: string[];
+    languages_known?: string[];
+    onboarding_step?: number;
+    submit?: boolean;
+  }) => api.patch("provider/onboarding/", payload),
+  uploadOnboardingFiles: (files: File[], documentType: "certificates" | "identity") => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    formData.append("document_type", documentType);
+    return api.post("provider/upload-document/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
   updateProfile: (payload: {
     full_name?: string;
     phone_number?: string;
@@ -13,6 +36,8 @@ export const providerService = {
     documents?: string[];
     city?: string;
     certificates?: string[];
+    identity_documents?: string[];
+    bank_details?: Record<string, string>;
     service_areas?: string[];
     languages_known?: string[];
   }) => api.put("providers/profile/update/", payload),

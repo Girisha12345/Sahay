@@ -26,9 +26,9 @@ const apiEnvUrl = getStringEnv("VITE_API_BASE_URL") ?? getStringEnv("VITE_API_UR
 
 const defaultApiBaseUrl = import.meta.env.DEV
   ? "/api/"
-  : "http://127.0.0.1:8001/api/";
+  : "http://127.0.0.1:8000/api/";
 
 export const API_BASE_URL = normalizeBaseUrl(apiEnvUrl ?? defaultApiBaseUrl);
-export const WS_BASE_URL = getStringEnv("VITE_WS_URL") ?? "ws://127.0.0.1:8001";
+export const WS_BASE_URL = getStringEnv("VITE_WS_URL") ?? "ws://127.0.0.1:8000";
 export const API_TIMEOUT_MS = getNumberEnv("VITE_API_TIMEOUT_MS", 15000);
 export const API_WITH_CREDENTIALS = getBooleanEnv("VITE_API_WITH_CREDENTIALS", false);

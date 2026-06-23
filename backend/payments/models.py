@@ -51,3 +51,24 @@ class WalletTransaction(models.Model):
 
 	def __str__(self):
 		return f"Tx({self.tx_type}, {self.amount})"
+
+
+class PaymentProof(models.Model):
+	class ProofStatus(models.TextChoices):
+		PENDING = "PENDING", "Pending Verification"
+		APPROVED = "APPROVED", "Approved"
+		REJECTED = "REJECTED", "Rejected"
+		UNDERPAID = "UNDERPAID", "Underpaid"
+		OVERPAID = "OVERPAID", "Overpaid"
+
+	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="payment_proofs")
+	customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payment_proofs")
+	amount_expected = models.DecimalField(max_digits=10, decimal_places=2)
+	amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+	utr_number = models.CharField(max_length=255)
+	screenshot = models.ImageField(upload_to="payment_proofs/")
+	status = models.CharField(max_length=50, choices=ProofStatus.choices, default=ProofStatus.PENDING)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f"PaymentProof#{self.id} - Booking#{self.booking_id} - {self.status}"

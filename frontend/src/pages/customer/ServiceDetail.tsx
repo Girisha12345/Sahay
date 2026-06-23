@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { ReviewForm } from "../../components/ReviewForm";
@@ -24,7 +24,7 @@ export function ServiceDetailPage() {
   const [service, setService] = useState<ServiceItem | null>(null);
   const [reviews, setReviews] = useState<ServiceReview[]>([]);
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     if (!serviceId) return;
     const [{ data: serviceData }, { data: reviewData }] = await Promise.all([
       serviceService.serviceById(serviceId),
@@ -32,7 +32,7 @@ export function ServiceDetailPage() {
     ]);
     setService(serviceData as ServiceItem);
     setReviews((reviewData || []) as ServiceReview[]);
-  };
+  }, [serviceId]);
 
   useEffect(() => {
     const load = async () => {
@@ -48,7 +48,7 @@ export function ServiceDetailPage() {
     };
 
     void load();
-  }, [serviceId]);
+  }, [refreshData]);
 
   const handleSubmitReview = async (payload: { service: number; rating: number; comment?: string }) => {
     setSubmitting(true);
@@ -102,6 +102,25 @@ export function ServiceDetailPage() {
           <StarRating rating={displayRating} />
           <span>{reviewCount > 0 ? displayRating.toFixed(1) : "New"}</span>
           {reviewCount > 0 && <span className="text-slate-500">({reviewCount} reviews)</span>}
+        </div>
+
+        <div className="pt-4 border-t border-slate-100">
+          <Button
+            type="button"
+            className="w-full md:w-auto font-semibold px-6"
+            onClick={() => {
+              if (!isAuthenticated) {
+                const nextPath = encodeURIComponent(`/checkout?serviceId=${service.id}`);
+                navigate(`/login?next=${nextPath}`);
+                return;
+              }
+              navigate(`/checkout?serviceId=${service.id}`, {
+                state: { service },
+              });
+            }}
+          >
+            Book Now
+          </Button>
         </div>
       </Card>
 

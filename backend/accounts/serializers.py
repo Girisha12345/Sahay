@@ -198,6 +198,16 @@ class ProviderOnboardingSerializer(serializers.Serializer):
         if self.validated_data.get("submit"):
             profile.onboarding_completed = True
             profile.verification_status = ProviderProfile.VerificationStatus.PENDING
+            try:
+                from notifications.services import notify_admins
+                notify_admins(
+                    title="New Provider Registration",
+                    message=f"Provider {user.first_name} {user.last_name} ({user.email}) has submitted their onboarding profile.",
+                    notification_type="NEW_PROVIDER_REGISTRATION",
+                    payload={"provider_id": str(user.id)}
+                )
+            except Exception:
+                pass
 
         profile.save()
         return profile

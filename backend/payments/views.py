@@ -320,6 +320,16 @@ class PaymentVerifyView(APIView):
 			notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
 			payload={"booking_id": booking.id, "payment_id": payment.id},
 		)
+		try:
+			from notifications.services import notify_admins
+			notify_admins(
+				title="Payment Received",
+				message=f"Payment of ₹{payment.amount} received for Booking #{booking.id}.",
+				notification_type="PAYMENT_RECEIVED",
+				payload={"booking_id": booking.id, "payment_id": payment.id},
+			)
+		except Exception:
+			pass
 
 		return Response(
 			{
@@ -354,6 +364,16 @@ class PaymentWebhookView(APIView):
 		if booking.status == Booking.Status.PENDING_PAYMENT:
 			booking.status = Booking.Status.CONFIRMED
 			booking.save(update_fields=["status", "updated_at"])
+		try:
+			from notifications.services import notify_admins
+			notify_admins(
+				title="Payment Received",
+				message=f"Payment of ₹{payment.amount} received via Webhook for Booking #{booking.id}.",
+				notification_type="PAYMENT_RECEIVED",
+				payload={"booking_id": booking.id, "payment_id": payment.id},
+			)
+		except Exception:
+			pass
 
 		return Response({"detail": "Webhook processed."}, status=200)
 
@@ -707,6 +727,16 @@ class VerifyPaymentProofView(APIView):
 				notification_type=Notification.NotificationType.PAYMENT_SUCCESS,
 				payload={"booking_id": booking.id},
 			)
+			try:
+				from notifications.services import notify_admins
+				notify_admins(
+					title="Payment Received (Proof Verified)",
+					message=f"Payment Proof verified for Booking #{booking.id}. Amount ₹{payment.amount} approved.",
+					notification_type="PAYMENT_RECEIVED",
+					payload={"booking_id": booking.id, "payment_id": payment.id},
+				)
+			except Exception:
+				pass
 
 		else:
 			proof.status = PaymentProof.ProofStatus.REJECTED

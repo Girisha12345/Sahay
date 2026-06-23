@@ -44,3 +44,19 @@ def create_notification(*, user, title: str, message: str, notification_type: st
             logger.exception("Failed to push notification over channel layer", extra={"user_id": getattr(user, "id", None)})
 
     return notification
+
+
+def notify_admins(*, title: str, message: str, notification_type: str, payload=None):
+    from accounts.models import User
+    try:
+        admins = User.objects.filter(role=User.Role.ADMIN)
+        for admin in admins:
+            create_notification(
+                user=admin,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                payload=payload,
+            )
+    except Exception:
+        logger.exception("Failed to dispatch notifications to admins")

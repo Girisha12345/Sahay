@@ -14,7 +14,17 @@ class SupportTicketCreateView(generics.CreateAPIView):
 	serializer_class = SupportTicketSerializer
 
 	def perform_create(self, serializer):
-		serializer.save(user=self.request.user)
+		ticket = serializer.save(user=self.request.user)
+		try:
+			from notifications.services import notify_admins
+			notify_admins(
+				title="Service Complaint Filed",
+				message=f"Support ticket #{ticket.id} filed by {ticket.user.email}: '{ticket.subject}'.",
+				notification_type="SERVICE_COMPLAINT",
+				payload={"ticket_id": ticket.id},
+			)
+		except Exception:
+			pass
 
 
 class SupportTicketListView(generics.ListAPIView):
@@ -40,7 +50,17 @@ class SupportTicketListCreateView(generics.ListCreateAPIView):
 		return SupportTicket.objects.filter(user=self.request.user).order_by("-created_at")
 
 	def perform_create(self, serializer):
-		serializer.save(user=self.request.user)
+		ticket = serializer.save(user=self.request.user)
+		try:
+			from notifications.services import notify_admins
+			notify_admins(
+				title="Service Complaint Filed",
+				message=f"Support ticket #{ticket.id} filed by {ticket.user.email}: '{ticket.subject}'.",
+				notification_type="SERVICE_COMPLAINT",
+				payload={"ticket_id": ticket.id},
+			)
+		except Exception:
+			pass
 
 
 class SupportTicketUpdateView(generics.UpdateAPIView):

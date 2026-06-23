@@ -46,13 +46,19 @@ class Message(models.Model):
 
 
 class FlaggedMessageLog(models.Model):
+	class Status(models.TextChoices):
+		PENDING = "PENDING", "Pending Review"
+		RESOLVED = "RESOLVED", "Resolved"
+		DISMISSED = "DISMISSED", "Dismissed"
+
 	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="flagged_logs")
 	sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="flagged_attempts")
 	raw_content = models.TextField()
+	status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
 	flagged_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
 		ordering = ["-flagged_at"]
 
 	def __str__(self):
-		return f"FlaggedLog(booking={self.booking_id}, sender={self.sender_id})"
+		return f"FlaggedLog(booking={self.booking_id}, sender={self.sender_id}, status={self.status})"

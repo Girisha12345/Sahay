@@ -44,6 +44,16 @@ class BookingCreateView(generics.CreateAPIView):
             notification_type=Notification.NotificationType.BOOKING_CREATED,
             payload={"booking_id": booking.id},
         )
+        try:
+            from notifications.services import notify_admins
+            notify_admins(
+                title="New Booking Created",
+                message=f"A new booking #{booking.id} has been created by {booking.customer.email} for {booking.service.title}.",
+                notification_type="BOOKING_CREATED",
+                payload={"booking_id": booking.id},
+            )
+        except Exception:
+            pass
 
 
 class CustomerBookingsView(generics.ListAPIView):

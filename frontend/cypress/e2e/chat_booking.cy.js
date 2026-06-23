@@ -1,10 +1,8 @@
 describe('Chat and booking flow', () => {
   it('allows login, creates booking and opens chat (smoke)', () => {
     // This is a smoke test skeleton — requires test accounts and seeded data.
-    cy.visit('/')
-
     // Try login
-    cy.contains('Login').click()
+    cy.visit('/login')
     cy.get('input[name="email"]').type('testcust@example.com')
     cy.get('input[name="password"]').type('Password123!')
     cy.get('button[type="submit"]').click()

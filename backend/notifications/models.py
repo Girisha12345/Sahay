@@ -12,6 +12,10 @@ class Notification(models.Model):
         PAYMENT_FAILED = "PAYMENT_FAILED", "Payment Failed"
         NEW_MESSAGE = "NEW_MESSAGE", "New Message"
         DISPUTE = "DISPUTE", "Dispute"
+        NEW_PROVIDER_REGISTRATION = "NEW_PROVIDER_REGISTRATION", "New Provider Registration"
+        CHAT_REPORTED = "CHAT_REPORTED", "Chat Reported"
+        SERVICE_COMPLAINT = "SERVICE_COMPLAINT", "Service Complaint"
+        PAYMENT_RECEIVED = "PAYMENT_RECEIVED", "Payment Received"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
     title = models.CharField(max_length=120)

@@ -139,11 +139,21 @@ class BookingChatConsumer(AsyncWebsocketConsumer):
 
 	@database_sync_to_async
 	def _log_flagged(self, user_id, content):
-		FlaggedMessageLog.objects.create(
+		log = FlaggedMessageLog.objects.create(
 			booking_id=self.booking_id,
 			sender_id=user_id,
 			raw_content=content,
 		)
+		try:
+			from notifications.services import notify_admins
+			notify_admins(
+				title="Chat Message Flagged",
+				message=f"A message in booking #{self.booking_id} was flagged for sharing personal details.",
+				notification_type="CHAT_REPORTED",
+				payload={"booking_id": self.booking_id, "log_id": log.id},
+			)
+		except Exception:
+			pass
 
 	@database_sync_to_async
 	def _mark_messages_read(self, user_id):

@@ -275,14 +275,30 @@ export function AdminDashboardPage() {
     }
   };
 
-  const handleDownloadReport = () => {
-    const params: Record<string, string> = { range: dateRange };
-    if (dateRange === "custom") {
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
+  const handleDownloadReport = async () => {
+    try {
+      const params: Record<string, string> = { range: dateRange };
+      if (dateRange === "custom") {
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+      }
+      const response = await adminService.downloadReport(reportType, reportFormat, params);
+      
+      const fileExt = reportFormat === "excel" ? "xlsx" : reportFormat;
+      const filename = `report_${reportType}_${new Date().toISOString().slice(0, 10)}_${new Date().toTimeString().slice(0, 8).replace(/:/g, "")}.${fileExt}`;
+      
+      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Error downloading report:", error);
     }
-    const url = adminService.getReportDownloadUrl(reportType, reportFormat, params);
-    window.open(url, "_blank");
   };
 
   const renderKpi = (value: number | undefined, isCurrency = false) => {

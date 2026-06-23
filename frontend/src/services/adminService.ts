@@ -157,6 +157,17 @@ export const adminService = {
   resolveFlaggedChat: (id: number, action: "resolve" | "dismiss") =>
     api.patch(`admin/flagged-chats/${id}/resolve`, { action }),
 
+  downloadReport: (reportType: string, format: string, params?: Record<string, string>) => {
+    return api.get("admin/reports/download", {
+      params: {
+        report_type: reportType,
+        format,
+        ...params,
+      },
+      responseType: "blob",
+    });
+  },
+
   getReportDownloadUrl: (reportType: string, format: string, params?: Record<string, string>) => {
     const query = new URLSearchParams({ report_type: reportType, format, ...params }).toString();
     // Default base URL fallback

@@ -1,6 +1,9 @@
 const normalizeBaseUrl = (value: string) => {
-  const trimmed = value.trim();
+  let trimmed = value.trim();
   if (!trimmed) return trimmed;
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    trimmed = `https://${trimmed}`;
+  }
   return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
 };
 
@@ -28,7 +31,16 @@ const defaultApiBaseUrl = import.meta.env.DEV
   ? "/api/"
   : "http://127.0.0.1:8000/api/";
 
+const getWsUrl = () => {
+  const wsEnv = getStringEnv("VITE_WS_URL");
+  if (!wsEnv) return "ws://127.0.0.1:8000";
+  if (!wsEnv.startsWith("ws://") && !wsEnv.startsWith("wss://")) {
+    return `wss://${wsEnv}`;
+  }
+  return wsEnv;
+};
+
 export const API_BASE_URL = normalizeBaseUrl(apiEnvUrl ?? defaultApiBaseUrl);
-export const WS_BASE_URL = getStringEnv("VITE_WS_URL") ?? "ws://127.0.0.1:8000";
+export const WS_BASE_URL = getWsUrl();
 export const API_TIMEOUT_MS = getNumberEnv("VITE_API_TIMEOUT_MS", 15000);
 export const API_WITH_CREDENTIALS = getBooleanEnv("VITE_API_WITH_CREDENTIALS", false);

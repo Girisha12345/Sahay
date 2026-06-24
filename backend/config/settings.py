@@ -24,6 +24,12 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env("SECRET_KEY", default="change-me-in-production")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+if "RENDER_EXTERNAL_HOSTNAME" in os.environ:
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+
+CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=False)
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 
 
 # Application definition
@@ -87,22 +93,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "sahay_db"),
-        "USER": os.getenv("DB_USER", "postgres"),
-        "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": int(os.getenv("DB_PORT", "5433")),
-        # Use short-lived connections in development to avoid exhausting DB slots.
-        # Set DB_CONN_MAX_AGE env var to a higher value for production (seconds).
-        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
-        "OPTIONS": {
-            "connect_timeout": 10,
-        },
+if env("DATABASE_URL", default=None):
+    DATABASES = {
+        "default": env.db("DATABASE_URL")
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "sahay_db"),
+            "USER": os.getenv("DB_USER", "postgres"),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": int(os.getenv("DB_PORT", "5433")),
+            # Use short-lived connections in development to avoid exhausting DB slots.
+            # Set DB_CONN_MAX_AGE env var to a higher value for production (seconds).
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
+            "OPTIONS": {
+                "connect_timeout": 10,
+            },
+        }
+    }
 
 
 # Password validation

@@ -29,7 +29,7 @@ const quickLinks = [
   { label: "Payments", to: "/payments" },
   { label: "About Us", to: "/about" },
   { label: "Careers", to: "/careers" },
-  { label: "Contact Us", to: "mailto:hello@sahay.app" },
+  { label: "Contact Us", to: "mailto:sahayserviceshub@gmail.com" },
 ];
 
 const supportLinks = [
@@ -112,13 +112,13 @@ export function Footer() {
                 <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-sky-400" />
                 <span>Bangalore, India</span>
               </div>
-              <a href="mailto:hello@sahay.app" className={linkClassName}>
+              <a href="mailto:sahayserviceshub@gmail.com" className={linkClassName}>
                 <Mail className="h-4 w-4 text-sky-400" />
-                <span>hello@sahay.app</span>
+                <span>sahayserviceshub@gmail.com</span>
               </a>
-              <a href="tel:+919999999999" className={linkClassName}>
+              <a href="tel:+919019738720" className={linkClassName}>
                 <Phone className="h-4 w-4 text-sky-400" />
-                <span>+91 XXXXX XXXXX</span>
+                <span>+91 9019738720</span>
               </a>
             </div>
 

@@ -287,7 +287,7 @@ export function AdminDashboardPage() {
       const fileExt = reportFormat === "excel" ? "xlsx" : reportFormat;
       const filename = `report_${reportType}_${new Date().toISOString().slice(0, 10)}_${new Date().toTimeString().slice(0, 8).replace(/:/g, "")}.${fileExt}`;
       
-      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const blob = new Blob([response.data], { type: response.headers["content-type"] || "application/octet-stream" });
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
@@ -298,6 +298,7 @@ export function AdminDashboardPage() {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error("Error downloading report:", error);
+      alert("Failed to download report: " + ((error as Error).message || "Unknown error"));
     }
   };
 

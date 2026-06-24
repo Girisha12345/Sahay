@@ -40,8 +40,20 @@ class User(AbstractBaseUser, PermissionsMixin):
 	is_verified_provider = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
 	is_staff = models.BooleanField(default=False)
+	full_name = models.CharField(max_length=200, blank=True, default="")
+	email_verified = models.BooleanField(default=False)
+	phone_verified = models.BooleanField(default=False)
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
+
+	def save(self, *args, **kwargs):
+		if self.full_name and not (self.first_name or self.last_name):
+			parts = self.full_name.split(maxsplit=1)
+			self.first_name = parts[0]
+			self.last_name = parts[1] if len(parts) > 1 else ""
+		elif (self.first_name or self.last_name) and not self.full_name:
+			self.full_name = f"{self.first_name} {self.last_name}".strip()
+		super().save(*args, **kwargs)
 
 	USERNAME_FIELD = "email"
 	REQUIRED_FIELDS = ["phone_number"]
@@ -84,3 +96,23 @@ class ProviderProfile(models.Model):
 
 	def __str__(self):
 		return f"ProviderProfile({self.user.email})"
+
+
+class OTP(models.Model):
+	class OTPType(models.TextChoices):
+		EMAIL = "EMAIL", "Email Verification"
+		PHONE = "PHONE", "Phone Verification"
+		PASSWORD_RESET = "PASSWORD_RESET", "Password Reset"
+
+	user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name="otps")
+	email_or_phone = models.CharField(max_length=255, blank=True, default="")
+	otp = models.CharField(max_length=255)
+	otp_type = models.CharField(max_length=20, choices=OTPType.choices)
+	attempts = models.PositiveIntegerField(default=0)
+	expires_at = models.DateTimeField()
+	verified = models.BooleanField(default=False)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		target = self.email_or_phone or (self.user.email if self.user else "Anonymous")
+		return f"{self.otp_type} OTP for {target} ({self.otp})"

@@ -564,7 +564,7 @@ class AdminReportDownloadView(APIView):
 
     def get(self, request):
         report_type = request.query_params.get("report_type")
-        export_format = request.query_params.get("format", "csv").lower()
+        export_format = request.query_params.get("export_format", "csv").lower()
         start_date, end_date = get_date_range(request)
 
         if not report_type:
@@ -576,7 +576,7 @@ class AdminReportDownloadView(APIView):
         filename = f"report_{report_type}_{timezone.now().strftime('%Y%m%d%H%M%S')}"
 
         if report_type == "revenue":
-            headers = ["Month/Day", "Total Bookings", "Completed Jobs", "Total Revenue (₹)", "Commission (₹)"]
+            headers = ["Month/Day", "Total Bookings", "Completed Jobs", "Total Revenue (Rs.)", "Commission (Rs.)"]
             # Group by day
             qs = (
                 Booking.objects.filter(created_at__range=(start_date, end_date))
@@ -602,7 +602,7 @@ class AdminReportDownloadView(APIView):
             ]
 
         elif report_type == "booking":
-            headers = ["Booking ID", "Customer", "Provider", "Service", "Price (₹)", "Scheduled Date", "Status"]
+            headers = ["Booking ID", "Customer", "Provider", "Service", "Price (Rs.)", "Scheduled Date", "Status"]
             qs = Booking.objects.filter(created_at__range=(start_date, end_date)).select_related("customer", "provider", "service").order_by("-created_at")
             rows = [
                 [
@@ -618,7 +618,7 @@ class AdminReportDownloadView(APIView):
             ]
 
         elif report_type == "provider":
-            headers = ["Name", "Email", "Skills", "City", "Rating", "Completed Jobs", "Revenue Generated (₹)"]
+            headers = ["Name", "Email", "Skills", "City", "Rating", "Completed Jobs", "Revenue Generated (Rs.)"]
             qs = ProviderProfile.objects.annotate(
                 provider_name=Concat(F("user__first_name"), Value(" "), F("user__last_name")),
                 email=F("user__email"),
@@ -639,7 +639,7 @@ class AdminReportDownloadView(APIView):
             ]
 
         elif report_type == "customer":
-            headers = ["Name", "Email", "Phone", "Joined Date", "Total Bookings", "Total Spend (₹)"]
+            headers = ["Name", "Email", "Phone", "Joined Date", "Total Bookings", "Total Spend (Rs.)"]
             qs = User.objects.filter(role=User.Role.CUSTOMER).annotate(
                 customer_name=Concat(F("first_name"), Value(" "), F("last_name")),
                 total_bookings=Count("customer_bookings", filter=Q(customer_bookings__created_at__range=(start_date, end_date))),
@@ -658,7 +658,7 @@ class AdminReportDownloadView(APIView):
             ]
 
         elif report_type == "payment":
-            headers = ["Payment ID", "Booking ID", "Amount (₹)", "Commission (₹)", "Method", "Status", "Transaction ID", "Created At"]
+            headers = ["Payment ID", "Booking ID", "Amount (Rs.)", "Commission (Rs.)", "Method", "Status", "Transaction ID", "Created At"]
             qs = Payment.objects.filter(created_at__range=(start_date, end_date)).select_related("booking").order_by("-created_at")
             rows = [
                 [
@@ -684,7 +684,7 @@ class AdminReportDownloadView(APIView):
             return response
 
         elif export_format == "pdf":
-            title = f"Sahāy {report_type.capitalize()} Report"
+            title = f"Sahay {report_type.capitalize()} Report"
             content = export_pdf(headers, rows, title=title)
             response = HttpResponse(content, content_type="application/pdf")
             response["Content-Disposition"] = f"attachment; filename={filename}.pdf"

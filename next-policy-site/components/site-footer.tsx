@@ -36,8 +36,8 @@ export function SiteFooter() {
             <h3 className="text-2xl font-black text-white">Sahāy</h3>
             <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Trusted local services, delivered with speed and safety.</p>
             <p className="mt-4 text-sm text-slate-300">Bangalore, India</p>
-            <a href="mailto:hello@sahay.app" className="mt-2 block text-sm text-slate-300 hover:text-white">hello@sahay.app</a>
-            <a href="tel:+919999999999" className="mt-2 block text-sm text-slate-300 hover:text-white">+91 XXXXX XXXXX</a>
+            <a href="mailto:sahayserviceshub@gmail.com" className="mt-2 block text-sm text-slate-300 hover:text-white">sahayserviceshub@gmail.com</a>
+            <a href="tel:+919019738720" className="mt-2 block text-sm text-slate-300 hover:text-white">+91 9019738720</a>
             <div className="mt-5 flex items-center gap-3">
               {[
                 [Share2, "Facebook"],

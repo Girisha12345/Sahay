@@ -36,12 +36,6 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: sahay-backend
-          property: host
+        value: "https://sahay-backend-tlp0.onrender.com"
       - key: VITE_WS_URL
-        fromService:
-          type: web
-          name: sahay-backend
-          property: host
+        value: "wss://sahay-backend-tlp0.onrender.com"

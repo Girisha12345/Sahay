@@ -8,6 +8,7 @@ services:
   - type: web
     name: sahay-backend
     env: python
+    plan: free
     buildCommand: "./backend/build.sh"
     startCommand: "cd backend && gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"
     envVars:

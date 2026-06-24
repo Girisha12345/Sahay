@@ -62,7 +62,7 @@ export function PaymentsPage() {
   useEffect(() => {
     document.title = "Payment History | Sahay";
     return () => {
-      document.title = "Sahay Service Marketplace";
+      document.title = "Sahay-Local Service Market Place";
     };
   }, []);
 

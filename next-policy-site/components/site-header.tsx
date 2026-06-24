@@ -18,7 +18,7 @@ export function SiteHeader() {
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-600/10 text-sky-700">
             <BriefcaseBusiness className="h-5 w-5" />
           </span>
-          Sahāy
+          Sahay-Local Service Market Place
         </Link>
 
         <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 md:flex">

@@ -33,7 +33,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-4">
           <section>
-            <h3 className="text-2xl font-black text-white">Sahāy</h3>
+            <h3 className="text-2xl font-black text-white">Sahay-Local Service Market Place</h3>
             <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Trusted local services, delivered with speed and safety.</p>
             <p className="mt-4 text-sm text-slate-300">Bangalore, India</p>
             <a href="mailto:sahayserviceshub@gmail.com" className="mt-2 block text-sm text-slate-300 hover:text-white">sahayserviceshub@gmail.com</a>

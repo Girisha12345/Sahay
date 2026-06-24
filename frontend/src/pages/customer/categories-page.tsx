@@ -14,7 +14,7 @@ export function CategoriesPage() {
   useEffect(() => {
     document.title = "Service Categories | Sahay";
     return () => {
-      document.title = "Sahay Service Marketplace";
+      document.title = "Sahay-Local Service Market Place";
     };
   }, []);
 

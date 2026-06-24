@@ -100,7 +100,7 @@ export function Footer() {
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-400 ring-1 ring-inset ring-sky-400/20">
                 <BriefcaseBusiness className="h-5 w-5" />
               </span>
-              <span>Sahāy</span>
+              <span>Sahay-Local Service Market Place</span>
             </Link>
 
             <p className="max-w-xs text-sm leading-6 text-slate-400">

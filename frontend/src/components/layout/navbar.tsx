@@ -29,7 +29,7 @@ export function Navbar() {
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-xl font-black text-slate-900">
-            <BriefcaseBusiness className="h-6 w-6 text-sky-600" /> Sahāy
+            <BriefcaseBusiness className="h-6 w-6 text-sky-600" /> Sahay-Local Service Market Place
           </Link>
           <nav className="hidden items-center gap-4 text-sm font-semibold text-slate-600 md:flex">
             <Link className="hover:text-sky-600" to="/">Home</Link>
@@ -99,7 +99,7 @@ export function Navbar() {
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-xl font-black text-slate-900">
-                <BriefcaseBusiness className="h-6 w-6 text-sky-600" /> Sahāy
+                <BriefcaseBusiness className="h-6 w-6 text-sky-600" /> Sahay-Local Service Market Place
               </Link>
               <button
                 type="button"

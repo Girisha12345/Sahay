@@ -4,7 +4,13 @@ const normalizeBaseUrl = (value: string) => {
   if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
     trimmed = `https://${trimmed}`;
   }
-  return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+  if (!trimmed.endsWith("/")) {
+    trimmed = `${trimmed}/`;
+  }
+  if (!trimmed.endsWith("/api/")) {
+    trimmed = `${trimmed}api/`;
+  }
+  return trimmed;
 };
 
 const getStringEnv = (key: string): string | undefined => {

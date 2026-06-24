@@ -1,7 +1,7 @@
 const normalizeBaseUrl = (value: string) => {
   let trimmed = value.trim();
   if (!trimmed) return trimmed;
-  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+  if (!trimmed.startsWith("/") && !trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
     trimmed = `https://${trimmed}`;
   }
   if (!trimmed.endsWith("/")) {

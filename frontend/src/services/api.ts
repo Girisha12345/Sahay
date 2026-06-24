@@ -56,6 +56,11 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   config.headers = config.headers ?? {};
 
+  // Strip leading slash so Axios correctly appends it to the baseURL path (e.g. /api/)
+  if (config.url && config.url.startsWith("/")) {
+    config.url = config.url.substring(1);
+  }
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
